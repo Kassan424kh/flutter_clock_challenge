@@ -1,7 +1,3 @@
-// Copyright 2019 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
@@ -11,16 +7,6 @@ import 'package:flutter/semantics.dart';
 import 'package:intl/intl.dart';
 import 'package:vector_math/vector_math_64.dart' show radians;
 
-/// Total distance traveled by a second or a minute hand, each second or minute,
-/// respectively.
-final radiansPerTick = radians(360 / 10); // set from 60 to 10 to sow fewer minutes and secound numbers on display
-
-/// Total distance traveled by an hour hand, each hour, in radians.
-final radiansPerHour = radians(360 / 24);
-
-/// A basic analog clock.
-///
-/// You can do better than this!
 class AnalogClock extends StatefulWidget {
   const AnalogClock(this.model);
 
@@ -42,13 +28,15 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   Animation<double> _animationHours;
   Animation<double> _animationMinutes;
 
+  double radiansPerTick = radians(360 / 10);
+  double radiansPerHour = radians(360 / 24);
+
   Timer _timer;
 
   @override
   void initState() {
     super.initState();
     widget.model.addListener(_updateModel);
-    // Set the initial values.
     _updateTime();
     _updateModel();
 
@@ -75,6 +63,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
         curve: Curves.easeInOutQuart,
       ),
     );
+
     _animationControllerHours.forward();
   }
 
@@ -84,6 +73,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
     if (widget.model != oldWidget.model) {
       oldWidget.model.removeListener(_updateModel);
       widget.model.addListener(_updateModel);
+      radiansPerHour = radians(360 / (oldWidget.model.is24HourFormat ? 24 : 12));
     }
   }
 
@@ -132,8 +122,6 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
 
     setState(() {
       _now = DateTime.now();
-      // Update once per second. Make sure to do it at the beginning of each
-      // new second, so that the clock is accurate.
       _timer = Timer(
         Duration(seconds: 1) - Duration(milliseconds: _now.millisecond),
         _updateTime,
@@ -174,13 +162,13 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       ),
     );
 
-    Size displaySize = Size.fromWidth(MediaQuery.of(context).size.width / 1.0);
+    Size displaySize = MediaQuery.of(context).size;
     double clockSize = displaySize.width;
     double numbersSize = 100;
 
     List<Widget> listOfHourNumbers() {
       List<Widget> hourNumbers = [];
-      for (var hour = 0; hour < 24; hour++)
+      for (var hour = 0; hour < (widget.model.is24HourFormat ? 24 : 12); hour++)
         hourNumbers.add(Align(
           alignment: Alignment.topCenter,
           child: Transform.rotate(
@@ -374,7 +362,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                         })),
 
                 // Clock Hand
-                Align(
+                /*Align(
                   alignment: Alignment.center,
                   child: Container(
                     width: (numbersSize / 2) - (numbersSize / 2.5),
@@ -398,11 +386,212 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                       ),
                     ]),
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ClockNumbers extends StatelessWidget {
+  final opacity;
+  final is24HourFormat;
+  final displaySize;
+  final numbersSize;
+  final nowType;
+  final radians;
+  final clockSize;
+  final showQuestion;
+  final animationController;
+  final animation;
+  final hourFormat;
+  final isHour;
+  final nowNumberSize;
+  final notNowNumberSize;
+  final numbersColor;
+  final backgroundColor;
+  final numbersShadow;
+  final spaceBetweenNumberAndDot;
+  final dotsSize;
+  final isDirectionNumbersLeft;
+  final positionLeft;
+  final positionTop;
+
+  ClockNumbers({
+    Key key,
+    this.opacity,
+    this.is24HourFormat,
+    this.displaySize,
+    this.nowType,
+    this.radians,
+    this.clockSize,
+    this.showQuestion,
+    this.animationController,
+    this.animation,
+    this.hourFormat,
+    this.isHour,
+    this.nowNumberSize,
+    this.notNowNumberSize,
+    this.numbersColor,
+    this.backgroundColor,
+    this.numbersShadow,
+    this.spaceBetweenNumberAndDot,
+    this.dotsSize,
+    this.numbersSize,
+    this.isDirectionNumbersLeft,
+    this.positionLeft,
+    this.positionTop,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> listOfNumbers() {
+      List<Widget> minuteNumbers = [];
+      for (var number = 0; number < isHour ? hourFormat : 60; number++)
+        minuteNumbers.add(
+          (showQuestion) || !isHour
+              ? Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.rotate(
+                    alignment: Alignment.topCenter,
+                    angle: isHour ? -(radians * number) : (radians * number),
+                    origin: Offset(0, clockSize / 2),
+                    child: Container(
+                      width: numbersSize,
+                      height: clockSize,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          SizedBox(height: 10),
+                          !isHour
+                              ? AnimatedOpacity(
+                                  opacity: number == nowType ? 1 : opacity,
+                                  duration: Duration(milliseconds: 350),
+                                  child: Container(
+                                    height: dotsSize,
+                                    width: dotsSize,
+                                    decoration: BoxDecoration(
+                                      color: numbersColor,
+                                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                                    ),
+                                  ),
+                                )
+                              : Container(),
+                          SizedBox(
+                            height: spaceBetweenNumberAndDot,
+                          ),
+                          AnimatedOpacity(
+                            opacity: number == nowType ? 1 : opacity,
+                            duration: Duration(milliseconds: 350),
+                            child: Text(
+                              (number).toString(),
+                              style: TextStyle(
+                                fontSize: number == nowType ? nowNumberSize : notNowNumberSize,
+                                fontFamily: "Gruppo",
+                                fontWeight: FontWeight.w700,
+                                color: numbersColor,
+                                shadows: [
+                                  numbersShadow,
+                                ],
+                              ),
+                            ),
+                          ),
+                          isHour
+                              ? AnimatedOpacity(
+                                  opacity: number == nowType ? 1 : opacity,
+                                  duration: Duration(milliseconds: 350),
+                                  child: Container(
+                                    height: dotsSize,
+                                    width: dotsSize,
+                                    decoration: BoxDecoration(
+                                      color: numbersColor,
+                                      borderRadius: BorderRadius.all(Radius.circular(20)),
+                                    ),
+                                  ),
+                                )
+                              : Container(),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              : Container(),
+        );
+
+      return minuteNumbers;
+    }
+
+    return Positioned(
+      left: positionLeft,
+      top: positionTop,
+      child: AnimatedBuilder(
+        animation: animationController,
+        child: Container(
+          width: clockSize,
+          height: clockSize,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.all(
+              Radius.circular(clockSize),
+            ),
+          ),
+          child: Stack(children: listOfNumbers()),
+        ),
+        builder: (BuildContext context, Widget widget) {
+          nowType;
+          return Transform.rotate(
+            alignment: Alignment.center,
+            angle: isDirectionNumbersLeft ? -((radians * animation.value)) : -((radians * animation.value)),
+            child: widget,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ClockHand extends StatelessWidget {
+  final handWidth;
+  final handHeight;
+  final dotSize;
+  final handColor;
+
+  ClockHand({
+    Key key,
+    this.handWidth,
+    this.handHeight,
+    this.dotSize,
+    this.handColor,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        width: dotSize,
+        height: handHeight,
+        child: Stack(children: <Widget>[
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              margin: EdgeInsets.only(top: 30),
+              width: dotSize,
+              height: handHeight,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+                border: Border.all(
+                  color: handColor,
+                  width: 2,
+                  style: BorderStyle.solid,
+                ),
+              ),
+            ),
+          ),
+        ]),
       ),
     );
   }
