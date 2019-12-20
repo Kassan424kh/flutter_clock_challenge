@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_clock_helper/model.dart';
@@ -6,6 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:intl/intl.dart';
 import 'package:vector_math/vector_math_64.dart' show radians;
+import 'package:provider/provider.dart';
+
+import 'clock_hand.dart';
+import 'clock_numbers.dart';
+import 'provider/data_of_clock_numbers.dart';
 
 class AnalogClock extends StatefulWidget {
   const AnalogClock(this.model);
@@ -31,7 +38,28 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   double radiansPerTick = radians(360 / 10);
   double radiansPerHour = radians(360 / 24);
 
+  GlobalKey _clockBoxKey = GlobalKey();
+  Size _clockBoxSize = Size(0, 0);
+  Offset _clockBoxPosition;
+
   Timer _timer;
+
+  _getSizes() {
+    final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
+    final sizeRed = renderBoxRed.size;
+    setState(() => _clockBoxSize = sizeRed);
+  }
+
+  _getPositions() {
+    final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
+    final positionRed = renderBoxRed.localToGlobal(Offset.zero);
+    setState(() => _clockBoxPosition = positionRed);
+  }
+
+  _afterLayout(_) {
+    _getSizes();
+    _getPositions();
+  }
 
   @override
   void initState() {
@@ -39,6 +67,8 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
     widget.model.addListener(_updateModel);
     _updateTime();
     _updateModel();
+
+    WidgetsBinding.instance.addPostFrameCallback(_afterLayout);
 
     _animationControllerHours = AnimationController(
       vsync: this,
@@ -70,6 +100,9 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   @override
   void didUpdateWidget(AnalogClock oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    _clockBoxSize = MediaQuery.of(context).size;
+
     if (widget.model != oldWidget.model) {
       oldWidget.model.removeListener(_updateModel);
       widget.model.addListener(_updateModel);
@@ -127,6 +160,8 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
         _updateTime,
       );
     });
+
+    WidgetsBinding.instance.addPostFrameCallback(_afterLayout);
   }
 
   @override
@@ -145,7 +180,6 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
             backgroundColor: Color(0xff072f43),
           );
     final handColor = Theme.of(context).brightness == Brightness.light ? Color(0xffEFDDD7) : Colors.white30;
-
     final numbersShadowColor = Theme.of(context).brightness == Brightness.light ? Color(0xffEFDDD7) : Color(0xff072433);
 
     final time = DateFormat.Hms().format(DateTime.now());
@@ -162,437 +196,156 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       ),
     );
 
-    Size displaySize = MediaQuery.of(context).size;
-    double clockSize = displaySize.width;
-    double numbersSize = 100;
+    double clockSize = _clockBoxSize.width;
+    double numbersSize = clockSize / 6;
 
-    List<Widget> listOfHourNumbers() {
-      List<Widget> hourNumbers = [];
-      for (var hour = 0; hour < (widget.model.is24HourFormat ? 24 : 12); hour++)
-        hourNumbers.add(Align(
-          alignment: Alignment.topCenter,
-          child: Transform.rotate(
-            alignment: Alignment.topCenter,
-            angle: -(radiansPerHour * hour),
-            origin: Offset(0, clockSize / 2),
-            child: Container(
-              width: numbersSize,
-              height: clockSize / 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  SizedBox(height: 10),
-                  AnimatedOpacity(
-                    opacity: hour == _now.hour ? 1 : 0.4,
-                    duration: Duration(milliseconds: 350),
-                    child: Text(
-                      (hour == 0 ? 12 : hour).toString(),
-                      style: TextStyle(
-                        fontSize: hour == _now.hour ? numbersSize - numbersSize / 3 : numbersSize / 5,
-                        fontFamily: "Righteous",
-                        color: customTheme.primaryColor,
-                        shadows: [
-                          BoxShadow(
-                            offset: Offset(0, 5),
-                            color: numbersShadowColor,
-                          ),
-                        ],
-                      ),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<DataOfClockNumbers>(
+          create: (_) => DataOfClockNumbers(),
+        ),
+      ],
+      child: Semantics.fromProperties(
+        key: _clockBoxKey,
+        properties: SemanticsProperties(
+          label: 'Analog clock with time $time',
+          value: time,
+        ),
+        child: Stack(
+          children: <Widget>[
+            Container(
+              width: _clockBoxSize.width,
+              height: _clockBoxSize.height,
+              color: customTheme.backgroundColor,
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: weatherInfo,
                     ),
                   ),
-                  SizedBox(
-                    height: (numbersSize / 2) - (numbersSize / 2.5),
-                  ),
-                  AnimatedOpacity(
-                    opacity: hour == _now.hour ? 1 : 0.4,
-                    duration: Duration(milliseconds: 350),
-                    child: Container(
-                      width: (numbersSize / 2) - (numbersSize / 2.5),
-                      height: (numbersSize / 2) - (numbersSize / 2.5),
-                      decoration: BoxDecoration(
-                        color: customTheme.primaryColor,
-                        borderRadius: BorderRadius.all(Radius.circular(20)),
+
+                  // hours
+                  ClockNumbers(
+                    opacity: 0.4,
+                    is24HourFormat: true,
+                    displaySize: _clockBoxSize,
+                    numbersSize: numbersSize,
+                    nowType: _now.hour,
+                    radians: radiansPerHour,
+                    clockSize: clockSize,
+                    animationController: _animationControllerHours,
+                    animation: _animationHours,
+                    isHour: true,
+                    nowNumberSize: numbersSize / 1.3,
+                    notNowNumberSize: numbersSize / 5,
+                    numbersColor: customTheme.primaryColor,
+                    backgroundColor: customTheme.accentColor,
+                    numberShadows: [
+                      BoxShadow(
+                        offset: Offset(0, 5),
+                        color: numbersShadowColor,
                       ),
+                    ],
+                    spaceBetweenNumberAndDot: (numbersSize / 2) - (numbersSize / 2.5),
+                    dotsSize: (numbersSize / 2) - (numbersSize / 2.5),
+                    isDirectionNumbersLeft: true,
+                    positionLeft: _clockBoxSize.width / 2 - clockSize / 2,
+                    positionTop: _clockBoxSize.width / 9,
+                  ),
+
+                  // minutes
+                  ClockNumbers(
+                    opacity: 0.4,
+                    is24HourFormat: true,
+                    displaySize: _clockBoxSize,
+                    numbersSize: numbersSize,
+                    nowType: _now.minute,
+                    radians: radiansPerTick,
+                    clockSize: clockSize / 2,
+                    animationController: _animationControllerMinutes,
+                    animation: _animationMinutes,
+                    isHour: false,
+                    nowNumberSize: numbersSize / 2.1,
+                    notNowNumberSize: numbersSize / 4,
+                    numbersColor: customTheme.highlightColor,
+                    backgroundColor: Colors.transparent,
+                    numberShadows: [
+                      BoxShadow(
+                        offset: Offset(0, 5),
+                        color: numbersShadowColor,
+                      ),
+                    ],
+                    spaceBetweenNumberAndDot: (numbersSize / 2) - (numbersSize / 2.5),
+                    dotsSize: (numbersSize / 2) - (numbersSize / 2.5),
+                    isDirectionNumbersLeft: false,
+                    positionLeft: _clockBoxSize.width / 2 - clockSize / 4,
+                    positionTop: _clockBoxSize.width / 5.5 + clockSize / 6,
+                  ),
+
+                  // Clock Hand
+                  ClockHand(
+                      handWidth: (numbersSize / 2) - (numbersSize / 2.5),
+                      handHeight: _clockBoxSize.height / 5.685,
+                      positionLeft: _clockBoxSize.width / 2 - clockSize / 2,
+                      positionTop: _clockBoxSize.width / 9,
+                      dotSize: (numbersSize / 2) - (numbersSize / 2.5),
+                      clockBoxSize: _clockBoxSize,
+                      handColor: handColor,
+                      clockBoxPosition: _clockBoxPosition),
+                  /*Align(
+                    alignment: Alignment.center,
+                    child: CustomPaint(
+                      painter: new X1Painter(),
                     ),
-                  )
+                  ),*/
                 ],
               ),
-            ),
-          ),
-        ));
-      return hourNumbers;
-    }
-
-    List<Widget> listOfMinutesNumbers() {
-      List<Widget> minuteNumbers = [];
-      for (var minute = 0; minute < 60; minute++)
-        minuteNumbers.add(
-          (minute <= _now.minute + 5) && (minute >= _now.minute - 5) || (_now.minute < 5 && (minute < 5 || minute > 56) || _now.minute >= 55 && minute < 3)
-              ? Align(
-                  alignment: Alignment.topCenter,
-                  child: Transform.rotate(
-                    alignment: Alignment.topCenter,
-                    angle: radiansPerTick * minute,
-                    origin: Offset(0, (clockSize / 2) / 2),
-                    child: Container(
-                      width: numbersSize / 2,
-                      height: (clockSize / 2) / 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: <Widget>[
-                          SizedBox(height: 10),
-                          AnimatedOpacity(
-                            opacity: minute == _now.minute ? 1 : 0.4,
-                            duration: Duration(milliseconds: 350),
-                            child: Container(
-                              height: (numbersSize / 2) - (numbersSize / 2.5),
-                              width: (numbersSize / 2) - (numbersSize / 2.5),
-                              decoration: BoxDecoration(
-                                color: customTheme.highlightColor,
-                                borderRadius: BorderRadius.all(Radius.circular(20)),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            height: (numbersSize / 2) - (numbersSize / 2.5),
-                          ),
-                          AnimatedOpacity(
-                            opacity: minute == _now.minute ? 1 : 0.4,
-                            duration: Duration(milliseconds: 350),
-                            child: Text(
-                              (minute).toString(),
-                              style: TextStyle(
-                                fontSize: minute == _now.minute ? numbersSize / 2.1 : numbersSize / 4,
-                                fontFamily: "Gruppo",
-                                fontWeight: FontWeight.w700,
-                                color: customTheme.highlightColor,
-                                shadows: [
-                                  BoxShadow(
-                                    offset: Offset(0, 2),
-                                    color: numbersShadowColor,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              : Container(),
-        );
-
-      return minuteNumbers;
-    }
-
-    return Semantics.fromProperties(
-      properties: SemanticsProperties(
-        label: 'Analog clock with time $time',
-        value: time,
-      ),
-      child: Stack(
-        children: <Widget>[
-          Container(
-            color: customTheme.backgroundColor,
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: weatherInfo,
-                  ),
-                ),
-
-                // hours Numbers
-                Positioned(
-                  left: displaySize.width / 2 - clockSize / 2,
-                  top: displaySize.width / 9,
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _animationControllerHours,
-                      child: Container(
-                        width: clockSize,
-                        height: clockSize,
-                        decoration: BoxDecoration(
-                          color: customTheme.accentColor,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(clockSize),
-                          ),
-                        ),
-                        child: Stack(children: listOfHourNumbers()),
-                      ),
-                      builder: (BuildContext context, Widget _widget) {
-                        _now.hour;
-                        return Transform.rotate(
-                          alignment: Alignment.center,
-                          angle: radiansPerHour * ((_animationHours.value + double.parse((_now.minute / 60 * 100).toStringAsFixed(0)) / 100)),
-                          child: _widget,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                // minutes Numbers
-                Positioned(
-                    left: displaySize.width / 2 - clockSize / 4,
-                    top: displaySize.width / 5.5 + clockSize / 6,
-                    child: AnimatedBuilder(
-                        animation: _animationControllerMinutes,
-                        child: Container(
-                          width: clockSize / 2,
-                          height: clockSize / 2,
-                          decoration: BoxDecoration(
-                            //color: Colors.black12,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(clockSize),
-                            ),
-                          ),
-                          child: Stack(children: listOfMinutesNumbers()),
-                        ),
-                        builder: (BuildContext context, Widget widget) {
-                          _now.minute;
-                          return Transform.rotate(
-                            alignment: Alignment.center,
-                            angle: -((radiansPerTick * _animationMinutes.value)),
-                            child: widget,
-                          );
-                        })),
-
-                // Clock Hand
-                /*Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: (numbersSize / 2) - (numbersSize / 2.5),
-                    height: displaySize.width,
-                    child: Stack(children: <Widget>[
-                      Align(
-                        alignment: Alignment.center,
-                        child: Container(
-                          margin: EdgeInsets.only(top: 30),
-                          width: (numbersSize / 2) - (numbersSize / 2.5),
-                          height: 79,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.all(Radius.circular(20)),
-                            border: Border.all(
-                              color: handColor,
-                              width: 2,
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ]),
-                  ),
-                ),*/
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class ClockNumbers extends StatelessWidget {
-  final opacity;
-  final is24HourFormat;
-  final displaySize;
-  final numbersSize;
-  final nowType;
-  final radians;
-  final clockSize;
-  final showQuestion;
-  final animationController;
-  final animation;
-  final hourFormat;
-  final isHour;
-  final nowNumberSize;
-  final notNowNumberSize;
-  final numbersColor;
-  final backgroundColor;
-  final numbersShadow;
-  final spaceBetweenNumberAndDot;
-  final dotsSize;
-  final isDirectionNumbersLeft;
-  final positionLeft;
-  final positionTop;
-
-  ClockNumbers({
-    Key key,
-    this.opacity,
-    this.is24HourFormat,
-    this.displaySize,
-    this.nowType,
-    this.radians,
-    this.clockSize,
-    this.showQuestion,
-    this.animationController,
-    this.animation,
-    this.hourFormat,
-    this.isHour,
-    this.nowNumberSize,
-    this.notNowNumberSize,
-    this.numbersColor,
-    this.backgroundColor,
-    this.numbersShadow,
-    this.spaceBetweenNumberAndDot,
-    this.dotsSize,
-    this.numbersSize,
-    this.isDirectionNumbersLeft,
-    this.positionLeft,
-    this.positionTop,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    List<Widget> listOfNumbers() {
-      List<Widget> minuteNumbers = [];
-      for (var number = 0; number < isHour ? hourFormat : 60; number++)
-        minuteNumbers.add(
-          (showQuestion) || !isHour
-              ? Align(
-                  alignment: Alignment.topCenter,
-                  child: Transform.rotate(
-                    alignment: Alignment.topCenter,
-                    angle: isHour ? -(radians * number) : (radians * number),
-                    origin: Offset(0, clockSize / 2),
-                    child: Container(
-                      width: numbersSize,
-                      height: clockSize,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: <Widget>[
-                          SizedBox(height: 10),
-                          !isHour
-                              ? AnimatedOpacity(
-                                  opacity: number == nowType ? 1 : opacity,
-                                  duration: Duration(milliseconds: 350),
-                                  child: Container(
-                                    height: dotsSize,
-                                    width: dotsSize,
-                                    decoration: BoxDecoration(
-                                      color: numbersColor,
-                                      borderRadius: BorderRadius.all(Radius.circular(20)),
-                                    ),
-                                  ),
-                                )
-                              : Container(),
-                          SizedBox(
-                            height: spaceBetweenNumberAndDot,
-                          ),
-                          AnimatedOpacity(
-                            opacity: number == nowType ? 1 : opacity,
-                            duration: Duration(milliseconds: 350),
-                            child: Text(
-                              (number).toString(),
-                              style: TextStyle(
-                                fontSize: number == nowType ? nowNumberSize : notNowNumberSize,
-                                fontFamily: "Gruppo",
-                                fontWeight: FontWeight.w700,
-                                color: numbersColor,
-                                shadows: [
-                                  numbersShadow,
-                                ],
-                              ),
-                            ),
-                          ),
-                          isHour
-                              ? AnimatedOpacity(
-                                  opacity: number == nowType ? 1 : opacity,
-                                  duration: Duration(milliseconds: 350),
-                                  child: Container(
-                                    height: dotsSize,
-                                    width: dotsSize,
-                                    decoration: BoxDecoration(
-                                      color: numbersColor,
-                                      borderRadius: BorderRadius.all(Radius.circular(20)),
-                                    ),
-                                  ),
-                                )
-                              : Container(),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              : Container(),
-        );
-
-      return minuteNumbers;
-    }
-
-    return Positioned(
-      left: positionLeft,
-      top: positionTop,
-      child: AnimatedBuilder(
-        animation: animationController,
-        child: Container(
-          width: clockSize,
-          height: clockSize,
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.all(
-              Radius.circular(clockSize),
-            ),
-          ),
-          child: Stack(children: listOfNumbers()),
+            )
+          ],
         ),
-        builder: (BuildContext context, Widget widget) {
-          nowType;
-          return Transform.rotate(
-            alignment: Alignment.center,
-            angle: isDirectionNumbersLeft ? -((radians * animation.value)) : -((radians * animation.value)),
-            child: widget,
-          );
-        },
       ),
     );
   }
 }
 
-class ClockHand extends StatelessWidget {
-  final handWidth;
-  final handHeight;
-  final dotSize;
-  final handColor;
+class X1Painter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    // create a bounding square, based on the centre and radius of the arc
+    Rect rect = new Rect.fromCircle(
+      center: new Offset(0.0, 0.0),
+      radius: 180.0,
+    );
 
-  ClockHand({
-    Key key,
-    this.handWidth,
-    this.handHeight,
-    this.dotSize,
-    this.handColor,
-  }) : super(key: key);
+    // a fancy rainbow gradient
+    final Gradient gradient = LinearGradient(
+      colors: <Color>[
+        Color(0xFFF80051),
+        Color(0xFFFBBCBA),
+        Color(0xffFBF5F3)
+      ],
+      stops: [
+        0.0,
+        0.05,
+        1.0
+      ],
+    );
+
+    // create the Shader from the gradient and the bounding square
+    final Paint paint = new Paint()..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke;
+
+    // and draw an arc
+    canvas.drawArc(rect, pi, pi * 2, true, paint);
+
+
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: Container(
-        width: dotSize,
-        height: handHeight,
-        child: Stack(children: <Widget>[
-          Align(
-            alignment: Alignment.center,
-            child: Container(
-              margin: EdgeInsets.only(top: 30),
-              width: dotSize,
-              height: handHeight,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-                border: Border.all(
-                  color: handColor,
-                  width: 2,
-                  style: BorderStyle.solid,
-                ),
-              ),
-            ),
-          ),
-        ]),
-      ),
-    );
+  bool shouldRepaint(X1Painter oldDelegate) {
+    return true;
   }
 }
