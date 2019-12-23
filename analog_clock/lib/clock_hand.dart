@@ -32,15 +32,16 @@ class ClockHand extends StatefulWidget {
 }
 
 class _ClockHandState extends State<ClockHand> {
-
   double _positionTop = 2000;
 
-  _setPositionTopOfHand(){
+  _setPositionTopOfHand() {
     Timer(const Duration(milliseconds: 3), () {
-      if (Provider.of<DataOfClockNumbers>(context).activeMinuteNumberOffset != null) setState(() {
-        _positionTop = (Provider.of<DataOfClockNumbers>(context).activeMinuteNumberOffset.dy - widget.positionTop - widget.clockBoxPosition.dy - widget.handHeight) +
-            (widget.dotSize + (widget.clockBoxSize.width * 0.4 / 100));
-      });
+      if (Provider.of<DataOfClockNumbers>(context).activeMinuteNumberOffset != null)
+        setState(() {
+          if (widget.clockBoxPosition != null)
+            _positionTop = (Provider.of<DataOfClockNumbers>(context).activeMinuteNumberOffset.dy - widget.positionTop - widget.clockBoxPosition.dy - widget.handHeight) +
+                (widget.dotSize + (widget.clockBoxSize.width * 0.4 / 100));
+        });
     });
   }
 
@@ -55,6 +56,7 @@ class _ClockHandState extends State<ClockHand> {
     super.didUpdateWidget(oldWidget);
     _setPositionTopOfHand();
   }
+
   @override
   Widget build(BuildContext context) {
     return Positioned(

@@ -12,6 +12,7 @@ dependencies:
     path: ../flutter_clock_helper
   cupertino_icons: ^0.1.2
   provider: ^3.2.0
+  flare_flutter: any
 
 dev_dependencies:
   flutter_test:
@@ -21,6 +22,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icons/clockHand.png
+    - assets/rive/SpeedEffect.flr
 
   fonts:
     - family: AclonicaRegular

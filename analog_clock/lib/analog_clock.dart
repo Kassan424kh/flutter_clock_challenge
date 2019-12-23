@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_clock_helper/model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -35,7 +35,8 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   Animation<double> _animationHours;
   Animation<double> _animationMinutes;
 
-  double radiansPerTick = radians(360 / 10);
+  double radiansPerTick = radians(180 / 59);
+  double radiansPerMinutes = radians(360 / 10);
   double radiansPerHour = radians(360 / 24);
 
   GlobalKey _clockBoxKey = GlobalKey();
@@ -168,10 +169,10 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     final customTheme = Theme.of(context).brightness == Brightness.light
         ? Theme.of(context).copyWith(
-            primaryColor: Color(0xFFFE4A49),
-            highlightColor: Color(0xFF2176FF),
-            accentColor: Colors.white,
-            backgroundColor: Color(0xffFBF5F3),
+            primaryColor: Color(0xFF0027D8),
+            highlightColor: Color(0xffFF4365),
+            accentColor: Color(0xffFFFFF3),
+            backgroundColor: Color(0xff2541B2),
           )
         : Theme.of(context).copyWith(
             primaryColor: Color(0xFF4285F4),
@@ -179,8 +180,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
             accentColor: Colors.black12,
             backgroundColor: Color(0xff072f43),
           );
-    final handColor = Theme.of(context).brightness == Brightness.light ? Color(0xffEFDDD7) : Colors.white30;
-    final numbersShadowColor = Theme.of(context).brightness == Brightness.light ? Color(0xffEFDDD7) : Color(0xff072433);
+    final handColor = Theme.of(context).brightness == Brightness.light ? Colors.black26 : Colors.white30;
 
     final time = DateFormat.Hms().format(DateTime.now());
     final weatherInfo = DefaultTextStyle(
@@ -196,7 +196,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       ),
     );
 
-    double clockSize = _clockBoxSize.width;
+    double clockSize = _clockBoxSize.width * 90 / 100;
     double numbersSize = clockSize / 6;
 
     return MultiProvider(
@@ -227,9 +227,54 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                     ),
                   ),
 
+                  Positioned(
+                    left: _clockBoxSize.width / 2 - _clockBoxSize.width / 2,
+                    top: _clockBoxSize.width / 8 - (_clockBoxSize.width / 2 - clockSize / 2),
+                    child: Container(
+                      width: _clockBoxSize.width,
+                      height: _clockBoxSize.width,
+                      decoration: BoxDecoration(
+                        color: Color(0xff2541B2),
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(_clockBoxSize.width),
+                        ),
+                      ),
+                      child: Stack(
+                        children: <Widget>[
+                          for (var second = 0; second < 60; second++)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Transform.rotate(
+                                alignment: Alignment.topCenter,
+                                angle: second * radiansPerTick,
+                                origin: Offset(_clockBoxSize.width / 4, (_clockBoxSize.width / 700) / 2),
+                                child: Container(
+                                  width: _clockBoxSize.width / 2,
+                                  height: _clockBoxSize.width / 700,
+                                  child: Stack(children: <Widget>[
+                                    Align(
+                                      alignment: Alignment.centerLeft.add(Alignment(0.05, 0)),
+                                      child: Container(
+                                        width: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].contains(second) ? (_clockBoxSize.width / 50) : (_clockBoxSize.width / 100),
+                                        height: _clockBoxSize.width / 700,
+                                        color: second == _now.second
+                                            ? Color(0xffffffff)
+                                            : second == (_now.second - 1)
+                                                ? Color(0xff49CFE9)
+                                                : second == (_now.second - 2) ? Color(0xff1CC3E3) : second == (_now.second - 3) ? Color(0xff047990) : Color(0xff03256C),
+                                      ),
+                                    )
+                                  ]),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   // hours
                   ClockNumbers(
-                    opacity: 0.4,
                     is24HourFormat: true,
                     displaySize: _clockBoxSize,
                     numbersSize: numbersSize,
@@ -240,67 +285,56 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                     animation: _animationHours,
                     isHour: true,
                     nowNumberSize: numbersSize / 1.3,
-                    notNowNumberSize: numbersSize / 5,
-                    numbersColor: customTheme.primaryColor,
+                    notNowNumberSize: numbersSize / 3.5,
+                    nowNumberColor: customTheme.primaryColor,
+                    notNowNumberColor: Color(0xffB7AD99),
                     backgroundColor: customTheme.accentColor,
-                    numberShadows: [
+                    boxShadow: [
                       BoxShadow(
-                        offset: Offset(0, 5),
-                        color: numbersShadowColor,
+                        color: Color(0xff03256C),
+                        blurRadius: 50,
+                        offset: Offset(0, -15),
                       ),
                     ],
                     spaceBetweenNumberAndDot: (numbersSize / 2) - (numbersSize / 2.5),
                     dotsSize: (numbersSize / 2) - (numbersSize / 2.5),
                     isDirectionNumbersLeft: true,
                     positionLeft: _clockBoxSize.width / 2 - clockSize / 2,
-                    positionTop: _clockBoxSize.width / 9,
+                    positionTop: _clockBoxSize.width / 8,
                   ),
 
                   // minutes
                   ClockNumbers(
-                    opacity: 0.4,
                     is24HourFormat: true,
                     displaySize: _clockBoxSize,
                     numbersSize: numbersSize,
                     nowType: _now.minute,
-                    radians: radiansPerTick,
+                    radians: radiansPerMinutes,
                     clockSize: clockSize / 2,
                     animationController: _animationControllerMinutes,
                     animation: _animationMinutes,
                     isHour: false,
                     nowNumberSize: numbersSize / 2.1,
                     notNowNumberSize: numbersSize / 4,
-                    numbersColor: customTheme.highlightColor,
-                    backgroundColor: Colors.transparent,
-                    numberShadows: [
-                      BoxShadow(
-                        offset: Offset(0, 5),
-                        color: numbersShadowColor,
-                      ),
-                    ],
+                    nowNumberColor: customTheme.highlightColor,
+                    notNowNumberColor: Color(0xffB7AD99),
                     spaceBetweenNumberAndDot: (numbersSize / 2) - (numbersSize / 2.5),
                     dotsSize: (numbersSize / 2) - (numbersSize / 2.5),
                     isDirectionNumbersLeft: false,
                     positionLeft: _clockBoxSize.width / 2 - clockSize / 4,
-                    positionTop: _clockBoxSize.width / 5.5 + clockSize / 6,
+                    positionTop: _clockBoxSize.width / 3.03,
                   ),
 
                   // Clock Hand
                   ClockHand(
-                      handWidth: (numbersSize / 2) - (numbersSize / 2.5),
-                      handHeight: _clockBoxSize.height / 5.685,
-                      positionLeft: _clockBoxSize.width / 2 - clockSize / 2,
-                      positionTop: _clockBoxSize.width / 9,
-                      dotSize: (numbersSize / 2) - (numbersSize / 2.5),
-                      clockBoxSize: _clockBoxSize,
-                      handColor: handColor,
-                      clockBoxPosition: _clockBoxPosition),
-                  /*Align(
-                    alignment: Alignment.center,
-                    child: CustomPaint(
-                      painter: new X1Painter(),
-                    ),
-                  ),*/
+                    handWidth: (numbersSize / 4.5),
+                    handHeight: _clockBoxSize.height / 6.785,
+                    positionTop: _clockBoxSize.width / 9,
+                    dotSize: (numbersSize / 2) - (numbersSize / 2.5),
+                    clockBoxSize: _clockBoxSize,
+                    handColor: handColor,
+                    clockBoxPosition: _clockBoxPosition,
+                  ),
                 ],
               ),
             )
@@ -311,41 +345,13 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   }
 }
 
-class X1Painter extends CustomPainter {
+class DolDurmaClipper extends CustomClipper<Path> {
   @override
-  void paint(Canvas canvas, Size size) {
-    // create a bounding square, based on the centre and radius of the arc
-    Rect rect = new Rect.fromCircle(
-      center: new Offset(0.0, 0.0),
-      radius: 180.0,
-    );
-
-    // a fancy rainbow gradient
-    final Gradient gradient = LinearGradient(
-      colors: <Color>[
-        Color(0xFFF80051),
-        Color(0xFFFBBCBA),
-        Color(0xffFBF5F3)
-      ],
-      stops: [
-        0.0,
-        0.05,
-        1.0
-      ],
-    );
-
-    // create the Shader from the gradient and the bounding square
-    final Paint paint = new Paint()..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke;
-
-    // and draw an arc
-    canvas.drawArc(rect, pi, pi * 2, true, paint);
-
-
+  Path getClip(Size size) {
+    final Path path = new Path()..lineTo(0.0, size.height / 2)..lineTo(size.width, size.height / 2)..lineTo(size.width, 0);
+    return path;
   }
 
   @override
-  bool shouldRepaint(X1Painter oldDelegate) {
-    return true;
-  }
+  bool shouldReclip(DolDurmaClipper oldClipper) => true;
 }

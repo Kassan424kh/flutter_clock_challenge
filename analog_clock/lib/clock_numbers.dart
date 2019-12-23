@@ -6,43 +6,44 @@ import 'provider/data_of_clock_numbers.dart';
 import 'package:provider/provider.dart';
 
 class ClockNumbers extends StatefulWidget {
-  final opacity;
-  final is24HourFormat;
-  final displaySize;
-  final numbersSize;
-  final nowType;
-  final radians;
-  final clockSize;
-  final showQuestion;
-  final animationController;
-  final animation;
-  final isHour;
-  final nowNumberSize;
-  final notNowNumberSize;
-  final numbersColor;
-  final backgroundColor;
-  final numberShadows;
-  final spaceBetweenNumberAndDot;
-  final dotsSize;
-  final isDirectionNumbersLeft;
-  final positionLeft;
-  final positionTop;
+  final double opacity;
+  final bool is24HourFormat;
+  final Size displaySize;
+  final double numbersSize;
+  final int nowType;
+  final double radians;
+  final double clockSize;
+  final AnimationController animationController;
+  final Animation<double> animation;
+  final bool isHour;
+  final double nowNumberSize;
+  final double notNowNumberSize;
+  final Color nowNumberColor;
+  final Color notNowNumberColor;
+  final Color backgroundColor;
+  final List<BoxShadow> numberShadows;
+  final List<BoxShadow> boxShadow;
+  final double spaceBetweenNumberAndDot;
+  final double dotsSize;
+  final bool isDirectionNumbersLeft;
+  final double positionLeft;
+  final double positionTop;
+  final Gradient backgroundGradientColor;
 
   ClockNumbers({
     Key key,
-    this.opacity,
+    this.opacity = 1,
     this.is24HourFormat = false,
     this.displaySize,
     this.nowType,
     this.radians,
     this.clockSize,
-    this.showQuestion = false,
     this.animationController,
     this.animation,
     this.isHour = false,
     this.nowNumberSize,
     this.notNowNumberSize,
-    this.numbersColor,
+    this.nowNumberColor,
     this.backgroundColor,
     this.numberShadows,
     this.spaceBetweenNumberAndDot,
@@ -50,7 +51,7 @@ class ClockNumbers extends StatefulWidget {
     this.numbersSize,
     this.isDirectionNumbersLeft,
     this.positionLeft,
-    this.positionTop,
+    this.positionTop, this.backgroundGradientColor, this.boxShadow, this.notNowNumberColor,
   }) : super(key: key);
 
   @override
@@ -63,9 +64,11 @@ class _ClockNumbersState extends State<ClockNumbers> {
 
   _getPositions(_) {
     Timer(const Duration(milliseconds: 10), () {
-      final RenderBox renderBoxRed = _activeMinutePointKey.currentContext.findRenderObject();
-      final positionRed = renderBoxRed.localToGlobal(Offset.zero);
-      Provider.of<DataOfClockNumbers>(context).setActiveMinuteNumberOffset(positionRed);
+      if (_activeMinutePointKey.currentContext != null){
+        final RenderBox renderBoxRed = _activeMinutePointKey.currentContext.findRenderObject();
+        final positionRed = renderBoxRed.localToGlobal(Offset.zero);
+        Provider.of<DataOfClockNumbers>(context).setActiveMinuteNumberOffset(positionRed);
+      }
     });
   }
 
@@ -81,13 +84,7 @@ class _ClockNumbersState extends State<ClockNumbers> {
     setState(() {
       _nowMinute = DateTime.now().minute;
     });
-    WidgetsBinding.instance.addPostFrameCallback(_getPositions);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    WidgetsBinding.instance.addPostFrameCallback(_getPositions);
+    if (widget.displaySize != oldWidget.displaySize) WidgetsBinding.instance.addPostFrameCallback(_getPositions);
   }
 
   @override
@@ -121,7 +118,7 @@ class _ClockNumbersState extends State<ClockNumbers> {
                                     height: widget.dotsSize,
                                     width: widget.dotsSize,
                                     decoration: BoxDecoration(
-                                      color: widget.numbersColor,
+                                      color: number == widget.nowType ? widget.nowNumberColor : widget.notNowNumberColor,
                                       borderRadius: BorderRadius.all(Radius.circular(20)),
                                     ),
                                   ),
@@ -139,7 +136,7 @@ class _ClockNumbersState extends State<ClockNumbers> {
                                 fontSize: number == widget.nowType ? widget.nowNumberSize : widget.notNowNumberSize,
                                 fontFamily: "Gruppo",
                                 fontWeight: FontWeight.w700,
-                                color: widget.numbersColor,
+                                color: number == widget.nowType ? widget.nowNumberColor : widget.notNowNumberColor,
                                 shadows: widget.numberShadows,
                               ),
                             ),
@@ -157,7 +154,7 @@ class _ClockNumbersState extends State<ClockNumbers> {
                                     height: widget.dotsSize,
                                     width: widget.dotsSize,
                                     decoration: BoxDecoration(
-                                      color: widget.numbersColor,
+                                      color: number == widget.nowType ? widget.nowNumberColor : widget.notNowNumberColor,
                                       borderRadius: BorderRadius.all(Radius.circular(20)),
                                     ),
                                   ),
@@ -178,31 +175,37 @@ class _ClockNumbersState extends State<ClockNumbers> {
     return Positioned(
       left: widget.positionLeft,
       top: widget.positionTop,
-      child: AnimatedBuilder(
-        animation: widget.animationController,
-        child: Container(
-          width: widget.clockSize,
-          height: widget.clockSize,
-          decoration: BoxDecoration(
-            color: widget.backgroundColor,
-            borderRadius: BorderRadius.all(
-              Radius.circular(widget.clockSize),
-            ),
+      child: Container(
+        width: widget.clockSize,
+        height: widget.clockSize,
+        decoration: BoxDecoration(
+          color: widget.backgroundColor,
+          gradient: widget.backgroundGradientColor,
+          boxShadow: widget.boxShadow,
+          borderRadius: BorderRadius.all(
+            Radius.circular(widget.clockSize),
           ),
-          child: Stack(children: listOfNumbers()),
         ),
-        builder: (BuildContext context, Widget _widget) {
-          double checkQuestion = widget.isHour
-              ? widget.isDirectionNumbersLeft
-                  ? widget.radians * (widget.animation.value + double.parse((_nowMinute / 60 * 100).toStringAsFixed(0)) / 100)
-                  : -(widget.radians * (widget.animation.value + double.parse((_nowMinute / 60 * 100).toStringAsFixed(0)) / 100))
-              : widget.isDirectionNumbersLeft ? (widget.radians * widget.animation.value) : -(widget.radians * widget.animation.value);
-          return Transform.rotate(
-            alignment: Alignment.center,
-            angle: checkQuestion,
-            child: _widget,
-          );
-        },
+        child: AnimatedBuilder(
+          animation: widget.animationController,
+          child: Container(
+            width: widget.clockSize,
+            height: widget.clockSize,
+            child: Stack(children: listOfNumbers()),
+          ),
+          builder: (BuildContext context, Widget _widget) {
+            double checkQuestion = widget.isHour
+                ? widget.isDirectionNumbersLeft
+                    ? widget.radians * (widget.animation.value + double.parse((_nowMinute / 60 * 100).toStringAsFixed(0)) / 100)
+                    : -(widget.radians * (widget.animation.value + double.parse((_nowMinute / 60 * 100).toStringAsFixed(0)) / 100))
+                : widget.isDirectionNumbersLeft ? (widget.radians * widget.animation.value) : -(widget.radians * widget.animation.value);
+            return Transform.rotate(
+              alignment: Alignment.center,
+              angle: checkQuestion,
+              child: _widget,
+            );
+          },
+        ),
       ),
     );
   }
