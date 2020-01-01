@@ -31,23 +31,26 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   var _location = '';
   double radiansPerTick = radians(180 / 59);
   double radiansPerMinutes = radians(360 / 10);
-  double _radiansPerHour = radians(360 / 6);
+  double _radiansPerHour = radians(360 / 24);
   double _radians = radians(360 / 24);
 
   Timer _timer;
   GlobalKey _clockBoxKey = GlobalKey();
   Size _clockBoxSize = Size(0, 0);
   Offset _clockBoxPosition;
+
   _getSizes() {
     final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
     final sizeRed = renderBoxRed.size;
     setState(() => _clockBoxSize = sizeRed);
   }
+
   _getPositions() {
     final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
     final positionRed = renderBoxRed.localToGlobal(Offset.zero);
     setState(() => _clockBoxPosition = positionRed);
   }
+
   _afterLayout(_) {
     _getSizes();
     _getPositions();
@@ -88,7 +91,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       _temperatureRange = '(${widget.model.low} - ${widget.model.highString})';
       _condition = widget.model.weatherString;
       _location = widget.model.location;
-      _radiansPerHour = radians(360 / (widget.model.is24HourFormat ? 10 : 12));
+      _radiansPerHour = radians(360 / (widget.model.is24HourFormat ? 24 : 12));
     });
   }
 
@@ -131,7 +134,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
         ClockEffect clockEffect = ClockEffect(
           endRange: widget.model.is24HourFormat ? 24 : 12,
           index: index,
-          gradualUpTo: 6,
+          gradualUpTo: 20,
           activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
         );
         _listOfNumbers.add(Transform.rotate(
@@ -143,7 +146,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
             child: Align(
               alignment: Alignment.centerRight,
               child: Transform(
-                transform: new Matrix4.translationValues(300, 0, 0)
+                transform: new Matrix4.translationValues(700, 0, 0)
                   ..setEntry(2, 1, 0.003)
                   ..rotateY(_radians * 90)
                   ..translate(0, 0, 0),
@@ -159,7 +162,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                         clockEffect.gradual(max: 255, min: 40).round(),
                         clockEffect.gradual(max: 44, min: 255).round(),
                         clockEffect.gradual(max: 91, min: 255).round(),
-                        clockEffect.gradual(max: 1, min: 0),
+                        clockEffect.gradual(max: 1, min: 0.8),
                       ),
                     ),
                   ),
@@ -169,15 +172,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
           ),
         ));
       }
-
-      List<Widget> List_1 = _listOfNumbers.sublist(activeNumberIndex);
-      List<Widget> List_2 = _listOfNumbers.sublist(0, activeNumberIndex);
-
-      _listOfNumbers.clear();
-      _listOfNumbers.addAll(List_2);
-      _listOfNumbers.addAll(List_1.reversed);
-
-      return _listOfNumbers;
+      return ClockEffect.sort3DNumbers(_listOfNumbers, activeNumberIndex);
     }
 
     return MultiProvider(
@@ -300,5 +295,86 @@ class ClockEffect {
     }
 
     return _gradual;
+  }
+
+  static List<Widget> sort3DNumbers(listOfNumbers, activeNumberIndex) {
+    Widget _activeNumber = listOfNumbers[activeNumberIndex];
+    Widget _inactiveNumber;
+
+    List<Widget> _list1 = [];
+    List<Widget> _list2 = [];
+
+    List<Widget> _sortedNumbersList = [];
+
+    listOfNumbers.remove(activeNumberIndex);
+
+    if (listOfNumbers.length.isOdd) {
+      int _halfIndexOfNumberList = (listOfNumbers.length / 2).round();
+
+      if (activeNumberIndex - _halfIndexOfNumberList >= 0) {
+        _inactiveNumber = listOfNumbers[activeNumberIndex - _halfIndexOfNumberList];
+        listOfNumbers.remove(activeNumberIndex - _halfIndexOfNumberList);
+
+        _halfIndexOfNumberList--;
+
+        _list1.addAll(listOfNumbers.sublist(activeNumberIndex - 1));
+        _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex - _halfIndexOfNumberList - 1));
+        List<Widget> _list1Reversed = [];
+        _list1Reversed.addAll(_list1.reversed);
+        _list1.clear();
+        _list1.addAll(_list1Reversed);
+
+        _list2.addAll(listOfNumbers.sublist(activeNumberIndex - _halfIndexOfNumberList - 1, activeNumberIndex - 1));
+      } else {
+        _inactiveNumber = listOfNumbers[activeNumberIndex + _halfIndexOfNumberList - 1];
+        listOfNumbers.remove(activeNumberIndex + _halfIndexOfNumberList);
+
+        _halfIndexOfNumberList--;
+
+        _list1.addAll(listOfNumbers.sublist(activeNumberIndex + _halfIndexOfNumberList));
+        _list1.addAll(listOfNumbers.sublist(0 , activeNumberIndex));
+        List<Widget> _list1Reversed = [];
+        _list1Reversed.addAll(_list1.reversed);
+        _list1.clear();
+        _list1.addAll(_list1Reversed);
+
+        _list2.addAll(listOfNumbers.sublist(activeNumberIndex, activeNumberIndex + _halfIndexOfNumberList));
+      }
+    }
+    else {
+      int _halfIndexOfNumberList = (listOfNumbers.length / 2).toInt();
+      if (activeNumberIndex - _halfIndexOfNumberList >= 0) {
+
+        _list1.addAll(listOfNumbers.sublist(activeNumberIndex));
+        _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex - _halfIndexOfNumberList));
+        List<Widget> _list1Reversed = [];
+        _list1Reversed.addAll(_list1.reversed);
+        _list1.clear();
+        _list1.addAll(_list1Reversed);
+
+        _list2.addAll(listOfNumbers.sublist(activeNumberIndex - _halfIndexOfNumberList, activeNumberIndex));
+      } else {
+        _list1.addAll(listOfNumbers.sublist(activeNumberIndex + _halfIndexOfNumberList));
+        _list1.addAll(listOfNumbers.sublist(0 , activeNumberIndex));
+        List<Widget> _list1Reversed = [];
+        _list1Reversed.addAll(_list1.reversed);
+        _list1.clear();
+        _list1.addAll(_list1Reversed);
+
+        _list2.addAll(listOfNumbers.sublist(activeNumberIndex, activeNumberIndex + _halfIndexOfNumberList));
+      }
+    }
+
+
+    if (_inactiveNumber != null) _sortedNumbersList.add(_inactiveNumber);
+
+    for (var indexOfSplitedNumbers = 0; indexOfSplitedNumbers < _list1.length ; indexOfSplitedNumbers++){
+      _sortedNumbersList.add(_list1[indexOfSplitedNumbers]);
+      _sortedNumbersList.add(_list2[indexOfSplitedNumbers]);
+    }
+
+    _sortedNumbersList.add(_activeNumber);
+
+    return _sortedNumbersList;
   }
 }
