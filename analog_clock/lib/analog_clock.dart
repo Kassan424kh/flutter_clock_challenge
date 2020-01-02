@@ -12,8 +12,6 @@ import 'package:intl/intl.dart';
 import 'package:vector_math/vector_math_64.dart' show Quaternion, Vector3, Vector4, radians;
 import 'package:provider/provider.dart';
 
-import 'provider/data_of_clock_numbers.dart';
-
 class AnalogClock extends StatefulWidget {
   const AnalogClock(this.model);
 
@@ -125,46 +123,105 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
 
     double clockSize = _clockBoxSize.height / 100 * 50;
 
+    return Semantics.fromProperties(
+      key: _clockBoxKey,
+      properties: SemanticsProperties(
+        label: 'Analog clock with time $time',
+        value: time,
+      ),
+      child: Stack(
+        children: <Widget>[
+          Container(
+            width: _clockBoxSize.width,
+            height: _clockBoxSize.height,
+            color: Colors.white,
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: weatherInfo,
+                  ),
+                ),
+                ClockNumbers(
+                  clockBoxSize: clockSize,
+                  activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
+                  model: widget.model,
+                  numberLengths: widget.model.is24HourFormat ? 24 : 12,
+                  radians: _radians,
+                  numberRadians: _radiansPerHour,
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class ClockNumbers extends StatelessWidget {
+  final ClockModel model;
+  final int numberLengths;
+  final double numberRadians;
+  final double radians;
+  final double clockBoxSize;
+  final int activeNumber;
+
+  ClockNumbers({
+    Key key,
+    this.model,
+    this.numberLengths,
+    this.radians,
+    this.numberRadians,
+    this.clockBoxSize,
+    this.activeNumber,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     List<Widget> getListOfClockNumbers() {
       int activeNumberIndex = 0;
 
       List<Widget> _listOfNumbers = [];
-      for (var index = 0; index < (widget.model.is24HourFormat ? 24 : 12); index++) {
-        if (index == _now.hour) activeNumberIndex = index;
+      for (var index = 0; index < numberLengths; index++) {
+        if (index == activeNumber) activeNumberIndex = index;
         ClockEffect clockEffect = ClockEffect(
-          endRange: widget.model.is24HourFormat ? 24 : 12,
+          endRange: numberLengths,
           index: index,
           gradualUpTo: 4,
-          activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
+          activeNumber: activeNumber,
         );
         _listOfNumbers.add(Transform.rotate(
-          angle: index * _radiansPerHour,
-          origin: Offset(-(clockSize * 2 / 4), 0),
+          angle: index * numberRadians,
+          origin: Offset(-(clockBoxSize * 2 / 4), 0),
           alignment: FractionalOffset.center,
           child: Container(
-            width: clockSize * 2 / 2,
+            width: clockBoxSize * 2 / 2,
             child: Align(
               alignment: Alignment.centerRight,
               child: Transform(
-                transform: new Matrix4.translationValues(250, 0, 0)
-                  ..rotateY(_radians * 90)
-                  ..translate(0, 0, 0),
+                transform: new Matrix4.translationValues(250, 0, 0)..rotateY(radians * 90),
                 alignment: Alignment.center,
                 child: Container(
-
+                  decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(10))),
                   child: Text(
                     (index < 10 ? "0" + index.toString() : index.toString()),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       shadows: [
-                        BoxShadow(color: index == _now.hour ? Color.fromRGBO(247, 23, 53, 0.1) : Colors.transparent, blurRadius: 30)
+                        BoxShadow(
+                          color: index == activeNumber ? Color.fromRGBO(247, 23, 53, 0.1) : Colors.transparent,
+                          blurRadius: 30,
+                        )
                       ],
                       fontSize: clockEffect.gradual(max: 250, min: 100),
                       color: Color.fromRGBO(
                         clockEffect.gradual(max: 247, min: 8).round(),
                         clockEffect.gradual(max: 23, min: 26).round(),
                         clockEffect.gradual(max: 53, min: 51).round(),
-                        clockEffect.gradual(max: 1, min: 0),
+                        clockEffect.gradual(max: 1, min: 0.1),
                       ),
                     ),
                   ),
@@ -177,61 +234,27 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       return ClockEffect.sort3DNumbers(_listOfNumbers, activeNumberIndex);
     }
 
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<DataOfClockNumbers>(
-          create: (_) => DataOfClockNumbers(),
-        ),
-      ],
-      child: Semantics.fromProperties(
-        key: _clockBoxKey,
-        properties: SemanticsProperties(
-          label: 'Analog clock with time $time',
-          value: time,
-        ),
+    return Align(
+      alignment: Alignment.center,
+      child: Transform(
+        transform: new Matrix4.rotationY(-(radians * 90))
+          ..scale(0.5, 0.5)
+          ..rotateZ(-(numberRadians * activeNumber)),
+        alignment: Alignment.center,
         child: Stack(
           children: <Widget>[
-            Container(
-              width: _clockBoxSize.width,
-              height: _clockBoxSize.height,
-              color: Colors.white,
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: weatherInfo,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Transform(
-                      transform: new Matrix4.rotationY(-(_radians * 90))
-                        ..scale(0.5, 0.5)
-                        ..rotateZ(-(_radiansPerHour * _now.hour)),
-                      alignment: Alignment.center,
-                      child: Stack(
-                        children: <Widget>[
-                          Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: clockSize * 2,
-                              height: clockSize * 2,
-                              //color: Colors.black12,
-                              child: Stack(
-                                alignment: Alignment.centerRight,
-                                children: getListOfClockNumbers(),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                ],
+            Align(
+              alignment: Alignment.center,
+              child: Container(
+                width: clockBoxSize * 2,
+                height: clockBoxSize * 2,
+                //color: Colors.black12,
+                child: Stack(
+                  alignment: Alignment.centerRight,
+                  children: getListOfClockNumbers(),
+                ),
               ),
-            )
+            ),
           ],
         ),
       ),
