@@ -134,7 +134,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
         ClockEffect clockEffect = ClockEffect(
           endRange: widget.model.is24HourFormat ? 24 : 12,
           index: index,
-          gradualUpTo: 6,
+          gradualUpTo: 4,
           activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
         );
         _listOfNumbers.add(Transform.rotate(
@@ -146,22 +146,24 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
             child: Align(
               alignment: Alignment.centerRight,
               child: Transform(
-                transform: new Matrix4.translationValues(400, 0, 0)
-                  ..setEntry(2, 1, 0.003)
+                transform: new Matrix4.translationValues(250, 0, 0)
                   ..rotateY(_radians * 90)
                   ..translate(0, 0, 0),
                 alignment: Alignment.center,
                 child: Container(
-                  width: 1500,
-                  height: 350,
+
                   child: Text(
                     (index < 10 ? "0" + index.toString() : index.toString()),
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: clockEffect.gradual(max: 250, min: 250),
+                      shadows: [
+                        BoxShadow(color: index == _now.hour ? Color.fromRGBO(247, 23, 53, 0.1) : Colors.transparent, blurRadius: 30)
+                      ],
+                      fontSize: clockEffect.gradual(max: 250, min: 100),
                       color: Color.fromRGBO(
-                        clockEffect.gradual(max: 255, min: 40).round(),
-                        clockEffect.gradual(max: 44, min: 255).round(),
-                        clockEffect.gradual(max: 91, min: 255).round(),
+                        clockEffect.gradual(max: 247, min: 8).round(),
+                        clockEffect.gradual(max: 23, min: 26).round(),
+                        clockEffect.gradual(max: 53, min: 51).round(),
                         clockEffect.gradual(max: 1, min: 0),
                       ),
                     ),
