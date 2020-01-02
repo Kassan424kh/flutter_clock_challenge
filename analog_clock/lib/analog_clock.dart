@@ -31,7 +31,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   var _location = '';
   double radiansPerTick = radians(180 / 59);
   double radiansPerMinutes = radians(360 / 10);
-  double _radiansPerHour = radians(360 / 24);
+  double _radiansPerHour = radians(360 / 10);
   double _radians = radians(360 / 24);
 
   Timer _timer;
@@ -91,7 +91,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       _temperatureRange = '(${widget.model.low} - ${widget.model.highString})';
       _condition = widget.model.weatherString;
       _location = widget.model.location;
-      _radiansPerHour = radians(360 / (widget.model.is24HourFormat ? 24 : 12));
+      _radiansPerHour = radians(360 / (widget.model.is24HourFormat ? 10 : 12));
     });
   }
 
@@ -134,7 +134,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
         ClockEffect clockEffect = ClockEffect(
           endRange: widget.model.is24HourFormat ? 24 : 12,
           index: index,
-          gradualUpTo: 20,
+          gradualUpTo: 6,
           activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
         );
         _listOfNumbers.add(Transform.rotate(
@@ -146,7 +146,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
             child: Align(
               alignment: Alignment.centerRight,
               child: Transform(
-                transform: new Matrix4.translationValues(700, 0, 0)
+                transform: new Matrix4.translationValues(400, 0, 0)
                   ..setEntry(2, 1, 0.003)
                   ..rotateY(_radians * 90)
                   ..translate(0, 0, 0),
@@ -162,7 +162,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                         clockEffect.gradual(max: 255, min: 40).round(),
                         clockEffect.gradual(max: 44, min: 255).round(),
                         clockEffect.gradual(max: 91, min: 255).round(),
-                        clockEffect.gradual(max: 1, min: 0.8),
+                        clockEffect.gradual(max: 1, min: 0),
                       ),
                     ),
                   ),
@@ -245,10 +245,7 @@ class ClockEffect {
 
   ClockEffect({Key key, this.endRange, this.index, this.activeNumber, this.gradualUpTo = 0});
 
-  double gradual({
-    double max,
-    double min,
-  }) {
+  double gradual({double max, double min}) {
     assert(endRange != null && index != null && activeNumber != null && gradualUpTo != null && max != null && min != null);
 
     if (gradualUpTo >= endRange / 2) gradualUpTo = endRange ~/ 2;
@@ -319,10 +316,7 @@ class ClockEffect {
 
         _list1.addAll(listOfNumbers.sublist(activeNumberIndex - 1));
         _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex - _halfIndexOfNumberList - 1));
-        List<Widget> _list1Reversed = [];
-        _list1Reversed.addAll(_list1.reversed);
-        _list1.clear();
-        _list1.addAll(_list1Reversed);
+        _list1.replaceRange(0, _list1.length, _list1.reversed);
 
         _list2.addAll(listOfNumbers.sublist(activeNumberIndex - _halfIndexOfNumberList - 1, activeNumberIndex - 1));
       } else {
@@ -332,43 +326,31 @@ class ClockEffect {
         _halfIndexOfNumberList--;
 
         _list1.addAll(listOfNumbers.sublist(activeNumberIndex + _halfIndexOfNumberList));
-        _list1.addAll(listOfNumbers.sublist(0 , activeNumberIndex));
-        List<Widget> _list1Reversed = [];
-        _list1Reversed.addAll(_list1.reversed);
-        _list1.clear();
-        _list1.addAll(_list1Reversed);
+        _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex));
 
         _list2.addAll(listOfNumbers.sublist(activeNumberIndex, activeNumberIndex + _halfIndexOfNumberList));
+        _list2.replaceRange(0, _list2.length, _list2.reversed);
       }
-    }
-    else {
+    } else {
       int _halfIndexOfNumberList = (listOfNumbers.length / 2).toInt();
       if (activeNumberIndex - _halfIndexOfNumberList >= 0) {
-
         _list1.addAll(listOfNumbers.sublist(activeNumberIndex));
         _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex - _halfIndexOfNumberList));
-        List<Widget> _list1Reversed = [];
-        _list1Reversed.addAll(_list1.reversed);
-        _list1.clear();
-        _list1.addAll(_list1Reversed);
+        _list1.replaceRange(0, _list1.length, _list1.reversed);
 
         _list2.addAll(listOfNumbers.sublist(activeNumberIndex - _halfIndexOfNumberList, activeNumberIndex));
       } else {
         _list1.addAll(listOfNumbers.sublist(activeNumberIndex + _halfIndexOfNumberList));
-        _list1.addAll(listOfNumbers.sublist(0 , activeNumberIndex));
-        List<Widget> _list1Reversed = [];
-        _list1Reversed.addAll(_list1.reversed);
-        _list1.clear();
-        _list1.addAll(_list1Reversed);
+        _list1.addAll(listOfNumbers.sublist(0, activeNumberIndex));
 
         _list2.addAll(listOfNumbers.sublist(activeNumberIndex, activeNumberIndex + _halfIndexOfNumberList));
+        _list2.replaceRange(0, _list2.length, _list2.reversed);
       }
     }
 
-
     if (_inactiveNumber != null) _sortedNumbersList.add(_inactiveNumber);
 
-    for (var indexOfSplitedNumbers = 0; indexOfSplitedNumbers < _list1.length ; indexOfSplitedNumbers++){
+    for (var indexOfSplitedNumbers = 0; indexOfSplitedNumbers < _list1.length; indexOfSplitedNumbers++) {
       _sortedNumbersList.add(_list1[indexOfSplitedNumbers]);
       _sortedNumbersList.add(_list2[indexOfSplitedNumbers]);
     }
