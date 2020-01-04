@@ -1,16 +1,15 @@
 import 'dart:async';
 import 'dart:ui';
-import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_clock_helper/model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:intl/intl.dart';
-import 'package:vector_math/vector_math_64.dart' show Quaternion, Vector3, Vector4, radians;
-import 'package:provider/provider.dart';
+import 'package:vector_math/vector_math_64.dart' show radians;
 
 class AnalogClock extends StatefulWidget {
   const AnalogClock(this.model);
@@ -27,9 +26,9 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
   var _temperatureRange = '';
   var _condition = '';
   var _location = '';
-  double radiansPerTick = radians(180 / 59);
+  double radiansPerSeconds = radians(360 / 10);
   double radiansPerMinutes = radians(360 / 10);
-  double _radiansPerHour = radians(360 / 10);
+  double radiansPerHour = radians(360 / 12);
   double _radians = radians(360 / 24);
 
   Timer _timer;
@@ -89,7 +88,6 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
       _temperatureRange = '(${widget.model.low} - ${widget.model.highString})';
       _condition = widget.model.weatherString;
       _location = widget.model.location;
-      _radiansPerHour = radians(360 / (widget.model.is24HourFormat ? 10 : 12));
     });
   }
 
@@ -134,7 +132,7 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
           Container(
             width: _clockBoxSize.width,
             height: _clockBoxSize.height,
-            color: Colors.white,
+            color: Colors.black87,
             child: Stack(
               children: [
                 Align(
@@ -144,14 +142,71 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
                     child: weatherInfo,
                   ),
                 ),
+                // Seconds
+                ClockNumbers(
+                  clockBoxSize: clockSize,
+                  activeNumber: _now.second,
+                  model: widget.model,
+                  numbersLength: 60,
+                  radians: _radians,
+                  numberRadians: radiansPerSeconds,
+                  activeNumberColor: Colors.tealAccent,
+                  inactiveNumberColor: Colors.white70,
+                  activeNumberOpacity: 1,
+                  inactiveNumberOpacity: 0.4,
+                  activeNumberSize: clockSize * 70 / 100,
+                  inactiveNumberSize: clockSize * 35 / 100,
+                  transitionX: (clockSize * 2) * 52.5 / 100,
+                  transitionY: clockSize * 70 / 100,
+                  scale: 0.3,
+                  rotateDegree: 45,
+                  positionedTop: (_clockBoxSize.height / 2 - clockSize),
+                  positionedLeft: (_clockBoxSize.width / 2 - clockSize) + (clockSize * 58 / 100),
+                ),
+
+                // Minutes
+                ClockNumbers(
+                  clockBoxSize: clockSize,
+                  activeNumber: _now.minute,
+                  model: widget.model,
+                  numbersLength: 60,
+                  radians: _radians,
+                  numberRadians: radiansPerMinutes,
+                  activeNumberColor: Colors.pinkAccent,
+                  inactiveNumberColor: Colors.white70,
+                  activeNumberOpacity: 1,
+                  inactiveNumberOpacity: 0.4,
+                  activeNumberSize: clockSize * 78.5 / 100,
+                  inactiveNumberSize: clockSize * 43.5 / 100,
+                  transitionX: (clockSize * 2) * 52.5 / 100,
+                  transitionY: clockSize * 70 / 100,
+                  scale: 0.4,
+                  rotateDegree: 45,
+                  positionedTop: (_clockBoxSize.height / 2 - clockSize),
+                  positionedLeft: (_clockBoxSize.width / 2 - clockSize),
+                ),
+
+                // Hours
                 ClockNumbers(
                   clockBoxSize: clockSize,
                   activeNumber: widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour,
                   model: widget.model,
-                  numberLengths: widget.model.is24HourFormat ? 24 : 12,
+                  numbersLength: widget.model.is24HourFormat ? 24 : 12,
                   radians: _radians,
-                  numberRadians: _radiansPerHour,
-                )
+                  numberRadians: radiansPerHour,
+                  activeNumberColor: Colors.deepPurpleAccent,
+                  inactiveNumberColor: Colors.white70,
+                  activeNumberOpacity: 1,
+                  inactiveNumberOpacity: 0.4,
+                  activeNumberSize: clockSize * 78.5 / 100,
+                  inactiveNumberSize: clockSize * 43.5 / 100,
+                  transitionX: (clockSize * 2) * 52.5 / 100,
+                  transitionY: clockSize * 70 / 100,
+                  scale: 0.5,
+                  rotateDegree: 45,
+                  positionedTop: (_clockBoxSize.height / 2 - clockSize),
+                  positionedLeft: (_clockBoxSize.width / 2 - clockSize) - (clockSize * 70 / 100),
+                ),
               ],
             ),
           )
@@ -163,20 +218,41 @@ class _AnalogClockState extends State<AnalogClock> with TickerProviderStateMixin
 
 class ClockNumbers extends StatelessWidget {
   final ClockModel model;
-  final int numberLengths;
+  final int numbersLength;
   final double numberRadians;
   final double radians;
   final double clockBoxSize;
   final int activeNumber;
+  final Color activeNumberColor, inactiveNumberColor;
+  final double activeNumberSize, inactiveNumberSize;
+  final double activeNumberOpacity, inactiveNumberOpacity;
+  final double transitionX, transitionY;
+  final double scale;
+  final int rotateDegree;
+  final double positionedTop, positionedRight, positionedBottom, positionedLeft;
 
   ClockNumbers({
     Key key,
     this.model,
-    this.numberLengths,
+    this.numbersLength,
     this.radians,
     this.numberRadians,
     this.clockBoxSize,
-    this.activeNumber,
+    this.activeNumber = 0,
+    this.activeNumberColor = Colors.deepPurple,
+    this.inactiveNumberColor = Colors.deepPurpleAccent,
+    this.activeNumberSize,
+    this.inactiveNumberSize,
+    this.activeNumberOpacity = 1,
+    this.inactiveNumberOpacity = 0,
+    this.transitionX = 300,
+    this.transitionY = 200,
+    this.scale = 0.5,
+    this.rotateDegree,
+    this.positionedTop,
+    this.positionedRight,
+    this.positionedBottom,
+    this.positionedLeft,
   });
 
   @override
@@ -185,10 +261,10 @@ class ClockNumbers extends StatelessWidget {
       int activeNumberIndex = 0;
 
       List<Widget> _listOfNumbers = [];
-      for (var index = 0; index < numberLengths; index++) {
+      for (var index = 0; index < numbersLength; index++) {
         if (index == activeNumber) activeNumberIndex = index;
         ClockEffect clockEffect = ClockEffect(
-          endRange: numberLengths,
+          endRange: numbersLength,
           index: index,
           gradualUpTo: 4,
           activeNumber: activeNumber,
@@ -196,34 +272,34 @@ class ClockNumbers extends StatelessWidget {
         _listOfNumbers.add(Transform.rotate(
           angle: index * numberRadians,
           origin: Offset(-(clockBoxSize * 2 / 4), 0),
-          alignment: FractionalOffset.center,
+          alignment: Alignment.center,
           child: Container(
-            width: clockBoxSize * 2 / 2,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Transform(
-                transform: new Matrix4.translationValues(250, 0, 0)..rotateY(radians * 90),
-                alignment: Alignment.center,
-                child: Container(
-                  decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.all(Radius.circular(10))),
-                  child: Text(
-                    (index < 10 ? "0" + index.toString() : index.toString()),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      shadows: [
-                        BoxShadow(
-                          color: index == activeNumber ? Color.fromRGBO(247, 23, 53, 0.1) : Colors.transparent,
-                          blurRadius: 30,
-                        )
-                      ],
-                      fontSize: clockEffect.gradual(max: 250, min: 100),
-                      color: Color.fromRGBO(
-                        clockEffect.gradual(max: 247, min: 8).round(),
-                        clockEffect.gradual(max: 23, min: 26).round(),
-                        clockEffect.gradual(max: 53, min: 51).round(),
-                        clockEffect.gradual(max: 1, min: 0.1),
-                      ),
-                    ),
+            width: clockBoxSize,
+            height: clockBoxSize * 10,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+            ),
+            child: Transform(
+              alignment: Alignment.center,
+              transform: new Matrix4.translationValues(transitionX, transitionY, 0)..rotateY(radians * rotateDegree),
+              child: Text(
+                (index < 10 ? "0" + index.toString() : index.toString()),
+
+                style: TextStyle(
+                  fontFamily: "Ubuntu",
+                  fontWeight: FontWeight.w700,
+                  shadows: [
+                    BoxShadow(
+                      color: index == activeNumber ? activeNumberColor.withOpacity(0.2) : Colors.black38,
+                      blurRadius: 50,
+                    )
+                  ],
+                  fontSize: clockEffect.gradual(max: activeNumberSize, min: inactiveNumberSize),
+                  color: Color.fromRGBO(
+                    clockEffect.gradual(max: activeNumberColor.red.toDouble(), min: inactiveNumberColor.red.toDouble()).round(),
+                    clockEffect.gradual(max: activeNumberColor.green.toDouble(), min: inactiveNumberColor.green.toDouble()).round(),
+                    clockEffect.gradual(max: activeNumberColor.blue.toDouble(), min: inactiveNumberColor.blue.toDouble()).round(),
+                    clockEffect.gradual(max: activeNumberOpacity, min: inactiveNumberOpacity),
                   ),
                 ),
               ),
@@ -234,28 +310,24 @@ class ClockNumbers extends StatelessWidget {
       return ClockEffect.sort3DNumbers(_listOfNumbers, activeNumberIndex);
     }
 
-    return Align(
-      alignment: Alignment.center,
+    return Positioned(
+      top: positionedTop,
+      right: positionedRight,
+      bottom: positionedBottom,
+      left: positionedLeft,
       child: Transform(
-        transform: new Matrix4.rotationY(-(radians * 90))
-          ..scale(0.5, 0.5)
+        transform: new Matrix4.rotationY(-(radians * rotateDegree))
+          ..scale(scale, scale)
           ..rotateZ(-(numberRadians * activeNumber)),
         alignment: Alignment.center,
-        child: Stack(
-          children: <Widget>[
-            Align(
-              alignment: Alignment.center,
-              child: Container(
-                width: clockBoxSize * 2,
-                height: clockBoxSize * 2,
-                //color: Colors.black12,
-                child: Stack(
-                  alignment: Alignment.centerRight,
-                  children: getListOfClockNumbers(),
-                ),
-              ),
-            ),
-          ],
+        child: Container(
+          width: clockBoxSize * 2,
+          height: clockBoxSize * 2,
+          child: Stack(
+            overflow: Overflow.visible,
+            alignment: Alignment.centerRight,
+            children: getListOfClockNumbers(),
+          ),
         ),
       ),
     );
@@ -385,3 +457,5 @@ class ClockEffect {
     return _sortedNumbersList;
   }
 }
+
+

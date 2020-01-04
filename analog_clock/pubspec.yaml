@@ -25,96 +25,13 @@ flutter:
     - assets/rive/SpeedEffect.flr
 
   fonts:
-    - family: AclonicaRegular
+    - family: Ubuntu
       fonts:
-        - asset: assets/fonts/Aclonica-Regular.ttf
-
-    - family: Alef
-      fonts:
-        - asset: assets/fonts/Alef-Bold.ttf
-
-    - family: BaiJamjuree
-      fonts:
-        - asset: assets/fonts/BaiJamjuree-Bold.ttf
-        - asset: assets/fonts/BaiJamjuree-BoldItalic.ttf
+        - asset: assets/fonts/Ubuntu-Bold.ttf
+        - asset: assets/fonts/Ubuntu-BoldItalic.ttf
           weight: 700
 
-    - family: Bangers
-      fonts:
-        - asset: assets/fonts/Bangers-Regular.ttf
 
-    - family: ChangaOne
-      fonts:
-        - asset: assets/fonts/ChangaOne-Regular.ttf
-        - asset: assets/fonts/ChangaOne-Italic.ttf
-          weight: 700
 
-    - family: DMSans
-      fonts:
-        - asset: assets/fonts/DMSans-Bold.ttf
-        - asset: assets/fonts/DMSans-BoldItalic.ttf
-          weight: 700
 
-    - family: EncodeSans
-      fonts:
-        - asset: assets/fonts/EncodeSans-Bold.ttf
 
-    - family: Gruppo
-      fonts:
-        - asset: assets/fonts/Gruppo-Regular.ttf
-
-    - family: KronaOne
-      fonts:
-        - asset: assets/fonts/KronaOne-Regular.ttf
-
-    - family: LexendPeta
-      fonts:
-        - asset: assets/fonts/LexendPeta-Regular.ttf
-
-    - family: MarcellusSC
-      fonts:
-        - asset: assets/fonts/MarcellusSC-Regular.ttf
-
-    - family: Michroma
-      fonts:
-        - asset: assets/fonts/Michroma-Regular.ttf
-
-    - family: MiriamLibre
-      fonts:
-        - asset: assets/fonts/MiriamLibre-Bold.ttf
-
-    - family: NixieOne
-      fonts:
-        - asset: assets/fonts/NixieOne-Regular.ttf
-
-    - family: NovaRound
-      fonts:
-        - asset: assets/fonts/NovaRound-Regular.ttf
-
-    - family: OleoScript
-      fonts:
-        - asset: assets/fonts/OleoScript-Bold.ttf
-
-    - family: Righteous
-      fonts:
-        - asset: assets/fonts/Righteous-Regular.ttf
-
-    - family: RussoOne
-      fonts:
-        - asset: assets/fonts/RussoOne-Regular.ttf
-
-    - family: Spinnaker
-      fonts:
-        - asset: assets/fonts/Spinnaker-Regular.ttf
-
-    - family: Syncopate
-      fonts:
-        - asset: assets/fonts/Syncopate-Bold.ttf
-
-    - family: Tauri
-      fonts:
-        - asset: assets/fonts/Tauri-Regular.ttf
-
-    - family: Taviraj
-      fonts:
-        - asset: assets/fonts/Taviraj-Bold.ttf
