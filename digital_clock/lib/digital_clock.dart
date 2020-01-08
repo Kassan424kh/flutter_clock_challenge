@@ -88,10 +88,43 @@ class _DigitalClockState extends State<DigitalClock> {
 class ClockNumbers extends StatelessWidget {
   @override
   Widget build(BuildContext buildContext) {
+    final Shader linearGradient = LinearGradient(
+      colors: <Color>[Color(0xffDA44bb), Color(0xff8921aa)],
+    ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0));
+
+    List<Widget> _number3DEffect() {
+      List<Widget> _list = [];
+      for (var number = 0; number < 40; number++)
+        _list.add(Align(
+          alignment: Alignment.topCenter,
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                top: (1 * number).toDouble(),
+                left: (1 * number).toDouble(),
+                child: Text(
+                  55.toString(),
+                  style: TextStyle(
+                    fontFamily: "ubuntu_bold_italic",
+                    fontSize: 400,
+                    foreground: number != 0 ? (Paint()..shader = linearGradient) : null,
+                    color: number == 0 ? Colors.white : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ));
+
+      _list = _list.reversed.toList();
+
+      return _list;
+    }
+
     return Container(
-      child: Text(
-        01.toString(),
-        style: TextStyle(fontSize: 50),
+      child: Stack(
+        alignment: Alignment.center,
+        children: _number3DEffect(),
       ),
     );
   }
