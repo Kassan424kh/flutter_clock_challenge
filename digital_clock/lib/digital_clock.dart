@@ -11,6 +11,33 @@ import 'package:flutter/semantics.dart';
 import 'package:intl/intl.dart';
 import 'package:vector_math/vector_math_64.dart' show radians;
 
+enum _Element { primary, hour, minute, centerShadow }
+
+final _lightTheme = {
+  _Element.primary: Colors.white,
+  _Element.hour: [
+    Color(0xff002fff),
+    Color(0xff00f4ff),
+  ],
+  _Element.minute: [
+    Color(0xff5F00E5),
+    Color(0xffff00d9),
+  ],
+  _Element.centerShadow: Color(0xff5F00E5),
+};
+final _darkTheme = {
+  _Element.primary: Color(0xff0a0060),
+  _Element.hour: [
+    Color(0xff002fff),
+    Color(0xff00f4ff),
+  ],
+  _Element.minute: [
+    Color(0xff5F00E5),
+    Color(0xffff00d9),
+  ],
+  _Element.centerShadow: Color(0xff5F00E5),
+};
+
 class DigitalClock extends StatefulWidget {
   const DigitalClock(this.model);
 
@@ -20,8 +47,7 @@ class DigitalClock extends StatefulWidget {
   _DigitalClockState createState() => _DigitalClockState();
 }
 
-class _DigitalClockState extends State<DigitalClock>
-    with TickerProviderStateMixin {
+class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMixin {
   var _now = DateTime.now();
   var _temperature = '';
   var _temperatureRange = '';
@@ -40,8 +66,7 @@ class _DigitalClockState extends State<DigitalClock>
   // Offset _clockBoxPosition;
 
   _getSizes() {
-    final RenderBox renderBoxRed =
-        _clockBoxKey.currentContext.findRenderObject();
+    final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
     final sizeRed = renderBoxRed.size;
     setState(() => _clockBoxSize = sizeRed);
   }
@@ -112,6 +137,7 @@ class _DigitalClockState extends State<DigitalClock>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).brightness != Brightness.light ? _lightTheme : _darkTheme;
     final time = DateFormat.Hms().format(DateTime.now());
     final weatherInfo = DefaultTextStyle(
       style: TextStyle(color: Colors.red),
@@ -128,7 +154,6 @@ class _DigitalClockState extends State<DigitalClock>
 
     double clockSize = _clockBoxSize.height / 100 * 50;
 
-    print(clockSize);
     return Semantics.fromProperties(
       key: _clockBoxKey,
       properties: SemanticsProperties(
@@ -140,19 +165,61 @@ class _DigitalClockState extends State<DigitalClock>
           Container(
             width: _clockBoxSize.width,
             height: _clockBoxSize.height,
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.white
-                : Colors.black87,
+            color: colors[_Element.primary],
             child: Stack(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: weatherInfo,
+                ClockNumbers(
+                  fontSize: clockSize * 1.5,
+                  clockNumber: _now.minute,
+                  clockBoxSize: clockSize,
+                  positionTop: clockSize / 2.5,
+                  positionLeft: clockSize * 140 / 100,
+                  number3dEffectSize: clockSize * 0.25 / 100,
+                  firstNumberColor: colors[_Element.primary],
+                  gradientColors: colors[_Element.minute],
+                ),
+                Positioned(
+                  left: -_clockBoxSize.height / 1.7,
+                  top: -_clockBoxSize.height / 1.08,
+                  child: Transform.rotate(
+                    angle: 0.8,
+                    alignment: Alignment.center,
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: <Widget>[
+                        Container(
+                          width: _clockBoxSize.height / 1.4,
+                          height: _clockBoxSize.height / 1.4,
+                          decoration: BoxDecoration(
+                            color: colors[_Element.primary],
+                            boxShadow: [
+                              BoxShadow(
+                                color: (colors[_Element.centerShadow] as Color).withOpacity(0.4),
+                                blurRadius: 200,
+                                offset: Offset(50, 0),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: _clockBoxSize.width,
+                          height: _clockBoxSize.width,
+                          color: colors[_Element.primary],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                ClockNumbers(fontSize: clockSize,)
+                ClockNumbers(
+                  fontSize: clockSize * 1.6,
+                  clockNumber: _now.hour,
+                  clockBoxSize: clockSize,
+                  positionTop: -(clockSize * 20/ 100),
+                  positionLeft: clockSize * 5 / 100,
+                  number3dEffectSize: clockSize * 0.25 / 100,
+                  firstNumberColor: colors[_Element.primary],
+                  gradientColors: colors[_Element.hour],
+                )
               ],
             ),
           )
@@ -162,21 +229,69 @@ class _DigitalClockState extends State<DigitalClock>
   }
 }
 
-class ClockNumbers extends StatelessWidget {
+class ClockNumbers extends StatefulWidget {
   final int clockNumber;
+  final double clockBoxSize;
+  final double positionTop, positionLeft;
   final double fontSize;
+  final double number3dEffectSize;
+  final Color firstNumberColor;
+  final List<Color> gradientColors;
+  final bool isTypeHour;
 
   ClockNumbers({
     Key key,
     this.fontSize,
-    this.clockNumber,
+    this.clockNumber = 0,
+    this.clockBoxSize,
+    this.positionTop = 0,
+    this.positionLeft = 0,
+    this.number3dEffectSize = 0.5,
+    this.gradientColors,
+    this.firstNumberColor,
+    this.isTypeHour,
   }) : super(key: key);
 
   @override
+  _ClockNumbersState createState() => _ClockNumbersState();
+}
+
+class _ClockNumbersState extends State<ClockNumbers> {
+  GlobalKey _numberGKey = GlobalKey();
+  RenderBox _numberRenderBox;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recordSize());
+  }
+
+  void _recordSize() {
+    setState(() {
+      _numberRenderBox = _numberGKey.currentContext.findRenderObject();
+    });
+  }
+
+  @override
   Widget build(BuildContext buildContext) {
-    final Shader linearGradient = LinearGradient(
-      colors: <Color>[Color(0xff8921aa), Color(0xffDA44bb)],
-    ).createShader(Rect.fromCircle(center: Offset(0, 0), radius: 300));
+    Shader linearGradient(RenderBox renderBox) {
+      if (renderBox == null) return null;
+      return LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: widget.gradientColors,
+        stops: [0.0, 1.0],
+        tileMode: TileMode.clamp,
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(
+            renderBox.localToGlobal(Offset.zero).dx + renderBox.size.width,
+            renderBox.localToGlobal(Offset.zero).dy,
+          ),
+          radius: 100,
+        ),
+      );
+    }
 
     List<Widget> _number3DEffect() {
       List<Widget> _list = [];
@@ -185,17 +300,18 @@ class ClockNumbers extends StatelessWidget {
           alignment: Alignment.topCenter,
           child: Stack(
             children: <Widget>[
+              Container(),
               Positioned(
-                top: (1 * number).toDouble(),
-                left: (1 * number).toDouble(),
+                top: (widget.number3dEffectSize * number).toDouble(),
+                left: (widget.number3dEffectSize * number).toDouble(),
                 child: Text(
-                  55.toString(),
+                  (widget.clockNumber < 10 ? "0${widget.clockNumber}" : widget.clockNumber).toString(),
+                  key: number == 0 ? _numberGKey : null,
                   style: TextStyle(
-                    fontFamily: "ubuntu_bold_italic",
-                    fontSize: fontSize,
-                    foreground:
-                        number != 0 ? (Paint()..shader = linearGradient) : null,
-                    color: number == 0 ? Colors.white : null,
+                    fontFamily: "ubuntu",
+                    fontSize: widget.fontSize,
+                    foreground: number != 0 ? (Paint()..shader = linearGradient(_numberRenderBox)) : null,
+                    color: number == 0 ? widget.firstNumberColor : null,
                   ),
                 ),
               ),
@@ -208,10 +324,13 @@ class ClockNumbers extends StatelessWidget {
       return _list;
     }
 
-    return Container(
-      child: Stack(
-        alignment: Alignment.center,
-        children: _number3DEffect(),
+    return Positioned.fill(
+      top: widget.positionTop,
+      left: widget.positionLeft,
+      child: Container(
+        child: Stack(
+          children: _number3DEffect(),
+        ),
       ),
     );
   }

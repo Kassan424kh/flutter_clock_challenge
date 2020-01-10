@@ -72,7 +72,7 @@ packages:
   flutter_clock_helper:
     dependency: "direct main"
     description:
-      path: "..\\flutter_clock_helper"
+      path: "../flutter_clock_helper"
       relative: true
     source: path
     version: "1.0.0+1"
@@ -81,6 +81,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  gradient_text:
+    dependency: "direct main"
+    description:
+      name: gradient_text
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   image:
     dependency: transitive
     description:
