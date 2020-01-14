@@ -9,6 +9,7 @@ class ClockDataText extends StatefulWidget {
   final Color firstDataTextLayserColor;
   final List<Color> gradientColors;
   final Animation animation;
+  final bool lightFount;
 
   ClockDataText({
     Key key,
@@ -21,6 +22,7 @@ class ClockDataText extends StatefulWidget {
     this.gradientColors,
     this.firstDataTextLayserColor,
     this.animation,
+    this.lightFount = false,
   }) : super(key: key);
 
   @override
@@ -79,8 +81,10 @@ class _ClockDataTextState extends State<ClockDataText> {
               child: Text(
                 widget.clockDataText,
                 key: dataText == 0 ? _numberGKey : null,
+                textScaleFactor: 0.8,
                 style: TextStyle(
                   fontFamily: "ubuntu",
+                  fontWeight: !widget.lightFount ? FontWeight.w700 : null,
                   fontSize: widget.fontSize,
                   foreground: dataText != 0 ? (Paint()..shader = _shader) : null,
                   color: dataText == 0 ? widget.firstDataTextLayserColor : null,

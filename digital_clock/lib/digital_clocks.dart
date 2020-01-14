@@ -241,6 +241,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                 firstDataTextLayserColor: colors[ElementColor.date],
                 gradientColors: [colors[ElementColor.primary], colors[ElementColor.primary]],
                 animation: _shadowAnimation,
+                lightFount: true,
               ),
             ],
           ),

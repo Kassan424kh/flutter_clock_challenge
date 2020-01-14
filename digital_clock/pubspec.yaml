@@ -22,4 +22,6 @@ flutter:
   fonts:
     - family: ubuntu
       fonts:
+        - asset: third_party/Ubuntu-LightItalic.ttf
         - asset: third_party/Ubuntu-BoldItalic.ttf
+          weight: 700

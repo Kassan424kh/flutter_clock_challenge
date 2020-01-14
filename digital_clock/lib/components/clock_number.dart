@@ -81,8 +81,10 @@ class _ClockNumbersState extends State<ClockNumbers> {
               child: Text(
                 (widget.clockNumber < 10 ? "0${widget.clockNumber}" : widget.clockNumber).toString(),
                 key: number == 0 ? _numberGKey : null,
+                textScaleFactor: 0.8,
                 style: TextStyle(
                   fontFamily: "ubuntu",
+                  fontWeight: FontWeight.w700,
                   fontSize: widget.fontSize,
                   foreground: number != 0 ? (Paint()..shader = _shader) : null,
                   color: number == 0 ? widget.firstNumberColor : null,
