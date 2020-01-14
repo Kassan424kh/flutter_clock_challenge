@@ -45,6 +45,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
     super.initState();
     _updateTime();
 
+    // set animation controllers
     _animationControllerShadowEffect = AnimationController(
       vsync: this,
       duration: Duration(seconds: 1),
@@ -65,15 +66,18 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       reverseDuration: Duration(milliseconds: 400),
     );
 
-    Animation _animationTweens(AnimationController ac) => Tween(begin: 0.0, end: 100.0).animate(
+    // animation function
+    Animation _animationTween(AnimationController ac) => Tween(begin: 0.0, end: 100.0).animate(
           CurvedAnimation(parent: ac, curve: Curves.easeInOutCubic),
         )..addListener(() => setState(() {}));
 
-    _shadowAnimation = _animationTweens(_animationControllerShadowEffect);
-    _hourAnimation = _animationTweens(_animationControllerHour);
-    _minuteAnimation = _animationTweens(_animationControllerMinute);
-    _clockFormatAnimation = _animationTweens(_animationController12ClockFormat);
+    // set animation Tween
+    _shadowAnimation = _animationTween(_animationControllerShadowEffect);
+    _hourAnimation = _animationTween(_animationControllerHour);
+    _minuteAnimation = _animationTween(_animationControllerMinute);
+    _clockFormatAnimation = _animationTween(_animationController12ClockFormat);
 
+    // run animation on start the app
     _animationControllerShadowEffect.forward().whenCompleteOrCancel(() {
       Timer(Duration(milliseconds: 300), () {
         if (!widget.model.is24HourFormat) _animationController12ClockFormat.forward();
@@ -83,12 +87,8 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       });
     });
 
+    // set Clock box size
     WidgetsBinding.instance.addPostFrameCallback(_getSizes);
-  }
-
-  @override
-  void didUpdateWidget(DigitalClock oldWidget) {
-    super.didUpdateWidget(oldWidget);
   }
 
   @override
@@ -98,6 +98,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   }
 
   // functions
+  // size function setter
   _getSizes(_) {
     final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
     final sizeRed = renderBoxRed.size;
@@ -107,6 +108,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
     });
   }
 
+  // function animating number updater
   _updateNumbersAnimation() {
     int _nowHour12Or24Format = widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour;
 
@@ -139,8 +141,12 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
     }
   }
 
+  // time updater
   void _updateTime() {
+    // update times, when it should updated
     _updateNumbersAnimation();
+
+    // update time
     setState(() {
       _now = DateTime.now();
       _timer = Timer(
@@ -149,6 +155,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       );
     });
 
+    // set size if screen would be scaled/resized
     Timer(Duration(milliseconds: 200), () {
       WidgetsBinding.instance.addPostFrameCallback(_getSizes);
       setState(() {
@@ -157,6 +164,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
     });
   }
 
+  // function percent calculator after _calculatedClockSize
   double _calculateAfterPercent(double percent) => _calculatedClockSize * percent / 100;
 
   @override
