@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:async';
 
 import 'package:digital_clock/center_shadow_effect.dart';
+import 'package:digital_clock/clock_data_text.dart';
 import 'package:digital_clock/clock_number.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/painting.dart';
@@ -56,13 +57,10 @@ class DigitalClock extends StatefulWidget {
 
 class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMixin {
   var _now = DateTime.now();
-  var _temperature = '';
-  var _temperatureRange = '';
-  var _condition = '';
-  var _location = '';
 
   int _nowHour = DateTime.now().hour;
   int _nowMinute = DateTime.now().minute;
+  int _nowHourFormat = 24;
 
   double _calculatedClockSize = 0;
 
@@ -70,8 +68,8 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   GlobalKey _clockBoxKey = GlobalKey();
   Size _clockBoxSize = Size(0, 0);
 
-  AnimationController _animationControllerShadowEffect, _animationControllerHour, _animationControllerMinute;
-  Animation<double> _shadowAnimation, _hourAnimation, _minuteAnimation;
+  AnimationController _animationControllerShadowEffect, _animationControllerHour, _animationControllerMinute, _animationController12ClockFormat;
+  Animation<double> _shadowAnimation, _hourAnimation, _minuteAnimation, _12ClockFormatAnimation;
 
   _getSizes(_) {
     final RenderBox renderBoxRed = _clockBoxKey.currentContext.findRenderObject();
@@ -85,9 +83,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    widget.model.addListener(_updateModel);
     _updateTime();
-    _updateModel();
 
     Animation _animationTweens(AnimationController ac) => Tween(begin: 0.0, end: 100.0).animate(
           CurvedAnimation(parent: ac, curve: Curves.easeInOutCubic),
@@ -107,13 +103,20 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       duration: Duration(milliseconds: 500),
       reverseDuration: Duration(milliseconds: 400),
     );
+    _animationController12ClockFormat = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 500),
+      reverseDuration: Duration(milliseconds: 400),
+    );
 
     _shadowAnimation = _animationTweens(_animationControllerShadowEffect);
     _hourAnimation = _animationTweens(_animationControllerHour);
     _minuteAnimation = _animationTweens(_animationControllerMinute);
+    _12ClockFormatAnimation = _animationTweens(_animationController12ClockFormat);
 
     _animationControllerShadowEffect.forward().whenCompleteOrCancel(() {
       Timer(Duration(milliseconds: 300), () {
+        if (!widget.model.is24HourFormat) _animationController12ClockFormat.forward();
         _animationControllerHour.forward().whenCompleteOrCancel(() {
           _animationControllerMinute.forward();
         });
@@ -126,34 +129,24 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   @override
   void didUpdateWidget(DigitalClock oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (widget.model != oldWidget.model) {
-      oldWidget.model.removeListener(_updateModel);
-      widget.model.addListener(_updateModel);
-    }
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    widget.model.removeListener(_updateModel);
     super.dispose();
-  }
-
-  void _updateModel() {
-    setState(() {
-      _temperature = widget.model.temperatureString;
-      _temperatureRange = '(${widget.model.low} - ${widget.model.highString})';
-      _condition = widget.model.weatherString;
-      _location = widget.model.location;
-    });
   }
 
   _updateNumbersAnimation() {
     // update Hour Animation
-    if (_animationControllerHour != null && _animationControllerHour.isCompleted && _animationControllerShadowEffect.isCompleted && _now.minute == 59 && _now.second == 59 || _now.hour != _nowHour) {
+    if (_animationControllerHour != null && _animationControllerHour.isCompleted && _animationControllerShadowEffect.isCompleted && _now.minute == 59 && _now.second == 59 ||
+        _now.hour != _nowHour ||
+        (_nowHourFormat == 24 && !widget.model.is24HourFormat || _nowHourFormat == 12 && widget.model.is24HourFormat)) {
       _animationControllerHour.reverse().whenCompleteOrCancel(() {
-        setState(() => _nowHour = _now.hour);
+        setState(() {
+          _nowHour = widget.model.is24HourFormat ? _nowHour : _nowHour > 12 ? _nowHour - 12 : _nowHour;
+          _nowHourFormat = _nowHourFormat == 12 ? 24 : 12;
+        });
         Timer(Duration(milliseconds: 50), () => _animationControllerHour.forward(from: 0));
       });
     }
@@ -164,6 +157,13 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
         setState(() => _nowMinute = _now.minute);
         Timer(Duration(milliseconds: 50), () => _animationControllerMinute.forward(from: 0));
       });
+    }
+
+    if (_animationController12ClockFormat != null) {
+      if (!widget.model.is24HourFormat) {
+        _animationController12ClockFormat.forward();
+      } else
+        _animationController12ClockFormat.reverse();
     }
   }
 
@@ -189,18 +189,6 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final colors = Theme.of(context).brightness == Brightness.light ? _lightTheme : _darkTheme;
     final time = DateFormat.Hms().format(DateTime.now());
-    /*final weatherInfo = DefaultTextStyle(
-      style: TextStyle(color: Colors.red),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(_temperature),
-          Text(_temperatureRange),
-          Text(_condition),
-          Text(_location),
-        ],
-      ),
-    );*/
 
     return Semantics.fromProperties(
       key: _clockBoxKey,
@@ -245,57 +233,21 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                   gradientColors: colors[_Element.hour],
                   animation: _hourAnimation,
                 ),
-                /*BackgroundAnimations(
-                  clockBoxSize: _clockBoxSize,
-                )*/
+                ClockDataText(
+                  fontSize: _calculatedClockSize * 15 / 100,
+                  clockDataText: _nowHour <= 12 ? "AM" : "PM",
+                  clockBoxSize: _calculatedClockSize,
+                  positionTop: _calculatedClockSize * 123 / 100,
+                  positionLeft: _calculatedClockSize * 90 / 100,
+                  dataText3dEffectSize: _calculatedClockSize * 0.05 / 100,
+                  firstDataTextLayserColor: colors[_Element.primary],
+                  gradientColors: colors[_Element.hour],
+                  animation: _12ClockFormatAnimation,
+                ),
               ],
             ),
           )
         ],
-      ),
-    );
-  }
-}
-
-class BackgroundAnimations extends StatelessWidget {
-  final _random = new Random();
-
-  double next(double min, double max) => min + (max - min) * _random.nextDouble();
-
-  final Size clockBoxSize;
-
-  BackgroundAnimations({Key key, this.clockBoxSize}) : super(key: key);
-
-  List<Widget> get _listOfAnimatedBackgroundWidgets {
-    List<Widget> _list = [];
-    for (int animatedWidget = 0; animatedWidget <= 3; animatedWidget++)
-      _list.add(
-        Positioned(
-          top: next(
-            (clockBoxSize.width * 5 / 100),
-            (clockBoxSize.height.toDouble() - (clockBoxSize.width * 5 / 100) * 2),
-          ),
-          child: Container(
-              width: clockBoxSize.width * 15 / 100,
-              height: clockBoxSize.width * 5 / 100,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.all(Radius.circular(clockBoxSize.width * 5 / 100)),
-                  border: Border.all(color: Colors.greenAccent, width: clockBoxSize.width * .5 / 100, style: BorderStyle.solid))),
-        ),
-      );
-    return _list;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: Container(
-        width: clockBoxSize.width,
-        height: clockBoxSize.height,
-        color: Colors.white,
-        child: Stack(
-          children: _listOfAnimatedBackgroundWidgets,
-        ),
       ),
     );
   }
