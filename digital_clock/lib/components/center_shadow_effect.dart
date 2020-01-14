@@ -28,14 +28,14 @@ class CenterShadowEffect extends StatelessWidget {
           alignment: Alignment.centerRight,
           children: <Widget>[
             Container(
-              width: clockSize * 160 / 100,
-              height: (clockSize * 160 / 100) * shadowAnimation.value / 100,
+              width: clockSize * 140 / 100,
+              height: (clockSize * 120 / 100) * shadowAnimation.value / 100,
               decoration: BoxDecoration(
                 color: backgroundColor,
                 boxShadow: [
                   BoxShadow(
                     color: shadowColor,
-                    blurRadius: clockSize * 70 / 100,
+                    blurRadius: clockSize * 50 / 100,
                     offset: Offset(clockSize * 15 / 100, 0),
                   ),
                 ],

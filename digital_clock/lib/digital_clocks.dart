@@ -180,10 +180,10 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
             children: [
               // Minute
               ClockNumbers(
-                fontSize: _calculateAfterPercent(120),
+                fontSize: _calculateAfterPercent(140),
                 clockNumber: _nowMinute,
                 clockBoxSize: _calculatedClockSize,
-                positionTop: _calculateAfterPercent(35),
+                positionTop: _calculateAfterPercent(50),
                 positionLeft: _calculateAfterPercent(140),
                 number3dEffectSize: _calculateAfterPercent(0.25),
                 firstNumberColor: colors[ElementColor.primary],
@@ -200,11 +200,11 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
               ),
               // Hour
               ClockNumbers(
-                fontSize: _calculateAfterPercent(120),
+                fontSize: _calculateAfterPercent(150),
                 clockNumber: _nowHour,
                 clockBoxSize: _calculatedClockSize,
-                positionTop: 0,
-                positionLeft: _calculateAfterPercent(25),
+                positionTop: _calculateAfterPercent(0),
+                positionLeft: _calculateAfterPercent(30),
                 number3dEffectSize: _calculateAfterPercent(0.25),
                 firstNumberColor: colors[ElementColor.primary],
                 gradientColors: colors[ElementColor.hour],
@@ -215,7 +215,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                 fontSize: _calculateAfterPercent(15),
                 clockDataText: _now.hour <= 12 ? "AM" : "PM",
                 clockBoxSize: _calculatedClockSize,
-                positionTop: _calculateAfterPercent(130),
+                positionTop: _calculateAfterPercent(136),
                 positionLeft: _calculateAfterPercent(80),
                 dataText3dEffectSize: _calculateAfterPercent(0.05),
                 firstDataTextLayserColor: colors[ElementColor.primary],
@@ -228,7 +228,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                 clockDataText: "${widget.model.temperatureString}  ${DateFormat("dd-MM-yyyy").format(DateTime.now())}",
                 clockBoxSize: _calculatedClockSize,
                 positionTop: _calculateAfterPercent(180),
-                positionLeft: _calculateAfterPercent(200),
+                positionLeft: _calculateAfterPercent(220),
                 dataText3dEffectSize: _calculateAfterPercent(0.05),
                 firstDataTextLayserColor: colors[ElementColor.date],
                 gradientColors: [colors[ElementColor.primary], colors[ElementColor.primary]],
