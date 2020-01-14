@@ -8,23 +8,19 @@ class ClockDataText extends StatefulWidget {
   final double dataText3dEffectSize;
   final Color firstDataTextLayserColor;
   final List<Color> gradientColors;
-  final bool isTypeHour;
   final Animation animation;
-  final double rotateAngle;
 
   ClockDataText({
     Key key,
     this.fontSize,
     this.clockDataText,
     this.clockBoxSize,
-    this.positionTop = 0,
-    this.positionLeft = 0,
+    this.positionTop,
+    this.positionLeft,
     this.dataText3dEffectSize = 0.5,
     this.gradientColors,
     this.firstDataTextLayserColor,
-    this.isTypeHour,
     this.animation,
-    this.rotateAngle = 0,
   }) : super(key: key);
 
   @override
@@ -129,14 +125,10 @@ class _ClockDataTextState extends State<ClockDataText> {
   Widget build(BuildContext buildContext) {
     return Positioned.fill(
       top: widget.positionTop,
-      left: (widget.positionLeft / 100 * 95) + ((widget.positionLeft * 5 / 100) * widget.animation.value / 100),
-      child: Transform.rotate(
-        angle: widget.rotateAngle,
-        alignment: Alignment.center,
-        child: Container(
-          child: Stack(
-            children: _dataText3DEffect,
-          ),
+      left: widget.positionLeft != null ? (widget.positionLeft / 100 * 95) + ((widget.positionLeft * 5 / 100) * widget.animation.value / 100) : null,
+      child: Container(
+        child: Stack(
+          children: _dataText3DEffect,
         ),
       ),
     );

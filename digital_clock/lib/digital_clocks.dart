@@ -1,10 +1,10 @@
-import 'dart:math';
 import 'dart:ui';
 import 'dart:async';
 
-import 'package:digital_clock/center_shadow_effect.dart';
-import 'package:digital_clock/clock_data_text.dart';
-import 'package:digital_clock/clock_number.dart';
+import 'package:digital_clock/components/center_shadow_effect.dart';
+import 'package:digital_clock/components/clock_data_text.dart';
+import 'package:digital_clock/components/clock_number.dart';
+import 'package:digital_clock/styling/colors.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
@@ -13,38 +13,6 @@ import 'package:flutter_clock_helper/model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:intl/intl.dart';
-
-enum _Element {
-  primary,
-  hour,
-  minute,
-  centerShadow,
-}
-
-final _lightTheme = {
-  _Element.primary: Colors.white,
-  _Element.hour: [
-    Color(0xff002fff),
-    Color(0xff00f4ff),
-  ],
-  _Element.minute: [
-    Color(0xff4B00FF),
-    Color(0xffff00d9),
-  ],
-  _Element.centerShadow: Color(0xff6F0FFF).withOpacity(0.3),
-};
-final _darkTheme = {
-  _Element.primary: Color(0xff0a0060),
-  _Element.hour: [
-    Color(0xff002fff),
-    Color(0xff00f4ff),
-  ],
-  _Element.minute: [
-    Color(0xff4B00FF),
-    Color(0xffff00d9),
-  ],
-  _Element.centerShadow: Color(0xff6F0FFF).withOpacity(0.5),
-};
 
 class DigitalClock extends StatefulWidget {
   const DigitalClock(this.model);
@@ -70,16 +38,12 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   Size _clockBoxSize = Size(0, 0);
 
   AnimationController _animationControllerShadowEffect, _animationControllerHour, _animationControllerMinute, _animationController12ClockFormat;
-  Animation<double> _shadowAnimation, _hourAnimation, _minuteAnimation, _12ClockFormatAnimation;
+  Animation<double> _shadowAnimation, _hourAnimation, _minuteAnimation, _clockFormatAnimation;
 
   @override
   void initState() {
     super.initState();
     _updateTime();
-
-    Animation _animationTweens(AnimationController ac) => Tween(begin: 0.0, end: 100.0).animate(
-          CurvedAnimation(parent: ac, curve: Curves.easeInOutCubic),
-        )..addListener(() => setState(() {}));
 
     _animationControllerShadowEffect = AnimationController(
       vsync: this,
@@ -101,10 +65,14 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       reverseDuration: Duration(milliseconds: 400),
     );
 
+    Animation _animationTweens(AnimationController ac) => Tween(begin: 0.0, end: 100.0).animate(
+          CurvedAnimation(parent: ac, curve: Curves.easeInOutCubic),
+        )..addListener(() => setState(() {}));
+
     _shadowAnimation = _animationTweens(_animationControllerShadowEffect);
     _hourAnimation = _animationTweens(_animationControllerHour);
     _minuteAnimation = _animationTweens(_animationControllerMinute);
-    _12ClockFormatAnimation = _animationTweens(_animationController12ClockFormat);
+    _clockFormatAnimation = _animationTweens(_animationController12ClockFormat);
 
     _animationControllerShadowEffect.forward().whenCompleteOrCancel(() {
       Timer(Duration(milliseconds: 300), () {
@@ -140,14 +108,16 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
   }
 
   _updateNumbersAnimation() {
+    int _nowHour12Or24Format = widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour;
+
     // update Hour Animation
     if (_animationControllerHour != null && _animationControllerHour.isCompleted && _animationControllerShadowEffect.isCompleted && _now.minute == 59 && _now.second == 59 ||
-        _now.hour != _nowHour ||
+        _nowHour12Or24Format != _nowHour ||
         (_nowHourFormat == 24 && !widget.model.is24HourFormat || _nowHourFormat == 12 && widget.model.is24HourFormat)) {
       _animationControllerHour.reverse().whenCompleteOrCancel(() {
         setState(() {
-          _nowHour = widget.model.is24HourFormat ? _nowHour : _nowHour > 12 ? _nowHour - 12 : _nowHour;
-          _nowHourFormat = _nowHourFormat == 12 ? 24 : 12;
+          _nowHour = widget.model.is24HourFormat ? _now.hour : _now.hour > 12 ? _now.hour - 12 : _now.hour; // set hour to selected format (12 or 24)
+          if (_nowHourFormat == 24 && !widget.model.is24HourFormat || _nowHourFormat == 12 && widget.model.is24HourFormat) _nowHourFormat = _nowHourFormat == 12 ? 24 : 12;
         });
         Timer(Duration(milliseconds: 50), () => _animationControllerHour.forward(from: 0));
       });
@@ -179,7 +149,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
       );
     });
 
-    Timer(Duration(milliseconds: 500), () {
+    Timer(Duration(milliseconds: 200), () {
       WidgetsBinding.instance.addPostFrameCallback(_getSizes);
       setState(() {
         _calculatedClockSize = _clockBoxSize.height / 2;
@@ -187,9 +157,11 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
     });
   }
 
+  double _calculateAfterPercent(double percent) => _calculatedClockSize * percent / 100;
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).brightness == Brightness.light ? _lightTheme : _darkTheme;
+    final colors = Theme.of(context).brightness == Brightness.light ? ClockColorThemes.lightTheme : ClockColorThemes.darkTheme;
     final time = DateFormat.Hms().format(DateTime.now());
 
     return Semantics.fromProperties(
@@ -197,54 +169,73 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
         label: 'Digital clock with time $time',
         value: time,
       ),
-      child: Container(
-        key: _clockBoxKey,
-        width: _clockBoxSize.width,
-        height: _clockBoxSize.height,
-        color: colors[_Element.primary],
-        child: Stack(
-          children: [
-            ClockNumbers(
-              fontSize: _calculatedClockSize * 1.4,
-              clockNumber: _nowMinute,
-              clockBoxSize: _calculatedClockSize,
-              positionTop: _calculatedClockSize / 2.8,
-              positionLeft: _calculatedClockSize * 120 / 100,
-              number3dEffectSize: _calculatedClockSize * 0.25 / 100,
-              firstNumberColor: colors[_Element.primary],
-              gradientColors: colors[_Element.minute],
-              animation: _minuteAnimation,
-            ),
-            CenterShadowEffect(
-              trueClockBoxSize: _clockBoxSize,
-              clockSize: _calculatedClockSize,
-              shadowAnimation: _shadowAnimation,
-              backgroundColor: colors[_Element.primary],
-              shadowColor: colors[_Element.centerShadow],
-            ),
-            ClockNumbers(
-              fontSize: _calculatedClockSize * 1.4,
-              clockNumber: _nowHour,
-              clockBoxSize: _calculatedClockSize,
-              positionTop: -(_calculatedClockSize * 20 / 100),
-              positionLeft: _calculatedClockSize * 4 / 100,
-              number3dEffectSize: _calculatedClockSize * 0.25 / 100,
-              firstNumberColor: colors[_Element.primary],
-              gradientColors: colors[_Element.hour],
-              animation: _hourAnimation,
-            ),
-            ClockDataText(
-              fontSize: _calculatedClockSize * 15 / 100,
-              clockDataText: _nowHour <= 12 ? "AM" : "PM",
-              clockBoxSize: _calculatedClockSize,
-              positionTop: _calculatedClockSize * 123 / 100,
-              positionLeft: _calculatedClockSize * 90 / 100,
-              dataText3dEffectSize: _calculatedClockSize * 0.05 / 100,
-              firstDataTextLayserColor: colors[_Element.primary],
-              gradientColors: colors[_Element.hour],
-              animation: _12ClockFormatAnimation,
-            ),
-          ],
+      child: OverflowBox(
+        child: Container(
+          key: _clockBoxKey,
+          width: _clockBoxSize.width,
+          height: _clockBoxSize.height,
+          color: colors[ElementColor.primary],
+          child: Stack(
+            overflow: Overflow.clip,
+            children: [
+              // Minute
+              ClockNumbers(
+                fontSize: _calculateAfterPercent(120),
+                clockNumber: _nowMinute,
+                clockBoxSize: _calculatedClockSize,
+                positionTop: _calculateAfterPercent(35),
+                positionLeft: _calculateAfterPercent(140),
+                number3dEffectSize: _calculateAfterPercent(0.25),
+                firstNumberColor: colors[ElementColor.primary],
+                gradientColors: colors[ElementColor.minute],
+                animation: _minuteAnimation,
+              ),
+              // Centered Shadow
+              CenterShadowEffect(
+                trueClockBoxSize: _clockBoxSize,
+                clockSize: _calculatedClockSize,
+                backgroundColor: colors[ElementColor.primary],
+                shadowColor: colors[ElementColor.centerShadow],
+                shadowAnimation: _shadowAnimation,
+              ),
+              // Hour
+              ClockNumbers(
+                fontSize: _calculateAfterPercent(120),
+                clockNumber: _nowHour,
+                clockBoxSize: _calculatedClockSize,
+                positionTop: 0,
+                positionLeft: _calculateAfterPercent(25),
+                number3dEffectSize: _calculateAfterPercent(0.25),
+                firstNumberColor: colors[ElementColor.primary],
+                gradientColors: colors[ElementColor.hour],
+                animation: _hourAnimation,
+              ),
+              // Hour Format (12 or 24)
+              ClockDataText(
+                fontSize: _calculateAfterPercent(15),
+                clockDataText: _now.hour <= 12 ? "AM" : "PM",
+                clockBoxSize: _calculatedClockSize,
+                positionTop: _calculateAfterPercent(130),
+                positionLeft: _calculateAfterPercent(80),
+                dataText3dEffectSize: _calculateAfterPercent(0.05),
+                firstDataTextLayserColor: colors[ElementColor.primary],
+                gradientColors: colors[ElementColor.hour],
+                animation: _clockFormatAnimation,
+              ),
+              // Date yyyy.mm.dd
+              ClockDataText(
+                fontSize: _calculateAfterPercent(15),
+                clockDataText: "${widget.model.temperatureString}  ${DateFormat("dd-MM-yyyy").format(DateTime.now())}",
+                clockBoxSize: _calculatedClockSize,
+                positionTop: _calculateAfterPercent(180),
+                positionLeft: _calculateAfterPercent(200),
+                dataText3dEffectSize: _calculateAfterPercent(0.05),
+                firstDataTextLayserColor: colors[ElementColor.date],
+                gradientColors: [colors[ElementColor.primary], colors[ElementColor.primary]],
+                animation: _shadowAnimation,
+              ),
+            ],
+          ),
         ),
       ),
     );
