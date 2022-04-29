@@ -219,7 +219,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                 animation: _hourAnimation,
               ),
               // Hour Format (12 or 24)
-              ClockDataText(
+              /*ClockDataText(
                 fontSize: _calculateAfterPercent(15),
                 clockDataText: _now.hour <= 12 ? "AM" : "PM",
                 clockBoxSize: _calculatedClockSize,
@@ -242,7 +242,7 @@ class _DigitalClockState extends State<DigitalClock> with TickerProviderStateMix
                 gradientColors: [colors[ElementColor.primary], colors[ElementColor.primary]],
                 animation: _shadowAnimation,
                 lightFount: true,
-              ),
+              ),*/
             ],
           ),
         ),
